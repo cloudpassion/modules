@@ -108,7 +108,7 @@ def main_kinozal_releases():
     ppp_year = pp_year - 1
 
     print('tmain')
-    for page in range(0, 1):
+    for page in range(0, 10):
     #for page in range(0, 25):
         loop = True
         while loop:
