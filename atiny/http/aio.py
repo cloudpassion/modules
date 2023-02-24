@@ -12,9 +12,13 @@ import random
 import traceback
 import uuid
 import urllib3
-import requests.adapters
-import requests.structures
-import requests.cookies
+try:
+    import requests.adapters
+    import requests.structures
+    import requests.cookies
+except ImportError:
+    pass
+
 import socks
 
 try:
