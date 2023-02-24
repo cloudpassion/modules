@@ -34,6 +34,8 @@ def tg_init(_andrey = False):
         if os.path.isfile('.chats.ids'):
             with open('.chats.ids', 'r') as f:
                 cids = f.readlines()
+        else:
+            cids = secrets.cids
     else:
         if os.path.isfile('.chatsA.ids'):
             with open('.chatsA.ids', 'r') as f:

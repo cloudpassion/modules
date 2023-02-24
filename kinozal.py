@@ -16,7 +16,7 @@ import my.tg as logging
 
 from .f import *
 from .sql import *
-from .tg import *
+from .tg.tg import *
 
 from my.config import secrets
 global kn_headers
@@ -29,8 +29,10 @@ kn_headers = { 'Cookie': TEMP_COOK,
 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.18 Safari/537.36' }
 
 global TTOR
-TTOR=dict(http=f'socks5://{PROXY}',
-        https=f'socks5://{PROXY}')
+TTOR=dict(http=f'http://{PROXY}',
+        https=f'http://{PROXY}')
+
+logging.basicConfig(level=logging.INFO)
 
 def kn_init():
     return
@@ -98,9 +100,65 @@ def kn_anounce(_torrent, _name):
     tg_send_cid_html(TG_CID, +str(_torrent)+' '+str(_name))
 
 def main_kinozal_releases():
-    print('tmain')
+    in_list = set()
 
-def deep_kinozal_releases():
+    cur_year = int(time.strftime('%Y'))
+    p_year = cur_year - 1
+    pp_year = p_year - 1
+    ppp_year = pp_year - 1
+
+    print('tmain')
+    for page in range(0, 1):
+    #for page in range(0, 25):
+        loop = True
+        while loop:
+            try:
+                resp = requests.get(
+                        f'https://kinozal.tv/browse.php?c=1002&page={page}',
+                        #'http://kinozal.tv/browse.php?'+urlencode({ 's': _flm })+'&g=0&c=1002&v=0&d='+str(y)+'&w=0&t=0&f=0',
+                        headers={ 'Cookie': kn_headers['Cookie'] },
+                        proxies=TTOR)
+                print('tt')
+                loop = False
+            except:
+                logging.info(f'stack', exc_info=True, stack_info=True)
+                time.sleep(10)
+                loop = True
+
+        soup = BeautifulSoup(resp.content.decode('cp1251'), 'lxml')
+        lines = soup.findAll('td', { 'class': 'nam' })
+        for line in lines:
+            name = line.text
+            href = line.find('a').get('href')
+            link = f'https://kinozal.tv{href}'
+
+            print(f'{name=}, {href=}')
+
+            for y_f in [ pp_year, p_year, cur_year ]:
+                y_file = 'files/'+str(y_f)+'.txt'
+
+                if not os.path.isfile(y_file):
+                    continue
+
+                with open(y_file, 'r') as _f:
+                    y_list = _f.readlines()
+
+                for _tflm in y_list:
+                    _flm = _tflm.splitlines()[0]
+                    _flm = f'{_flm}'
+                    
+                    if not re.search(f'{re.escape(_flm)}.*{y_f}', name):
+                        continue
+
+                    in_list.add(_tflm)
+                    break
+
+    logging.info(f'{in_list=}')
+    if in_list:
+        deep_kinozal_releases(in_list)
+
+
+def deep_kinozal_releases(in_list=None):
     print('deep')
 
     db_write = False
@@ -110,14 +168,17 @@ def deep_kinozal_releases():
     pp_year = p_year - 1
     ppp_year = pp_year - 1
     
-    for y_f in [ cur_year-1, cur_year ]:
+    for y_f in [ pp_year, p_year, cur_year ]:
         y_file = 'files/'+str(y_f)+'.txt'
 
         if not os.path.isfile(y_file):
             continue
-
-        with open(y_file, 'r') as _f:
-            y_list = _f.readlines()
+        
+        if in_list:
+            y_list = list(in_list)
+        else:
+            with open(y_file, 'r') as _f:
+                y_list = _f.readlines()
 
         for _tflm in y_list:
             _flm = _tflm.splitlines()[0]
