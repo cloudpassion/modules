@@ -29,7 +29,6 @@ try:
 except ImportError:
     pass
 
-import requests
 import aiohttp
 import ujson as json
 import ssl
