@@ -1,0 +1,11 @@
+# http full
+dnspython
+ujson
+requests
+responses
+aresponses
+aiohttp
+urllib3
+websockets
+aiosocksy
+aiohttp_socks

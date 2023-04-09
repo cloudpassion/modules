@@ -45,6 +45,17 @@ def basic_debug():
     )
 
 
+def parse_traceback(_trace, _return_text):
+    # try:
+    #     tb_str = traceback.format_exception(etype=type(_trace), value=_trace, tb=_trace.__traceback__)
+    #     return _return_text + '\n'.join(tb_str)
+    # except Exception as exc:
+    #     # print(f'check exc.ffff:{exc=}')
+    #     return 'trace.exc'
+
+    return 'trace.rewrite'
+
+
 # logging.basicConfig(
 #     level=logging.WARNING,
 #     format=INFO_FMT,

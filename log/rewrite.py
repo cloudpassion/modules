@@ -1,3 +1,5 @@
+import os
+
 from logging import (
     DEBUG, CRITICAL, INFO, ERROR, WARNING, NOTSET,
     basicConfig as def_basicConfig, info as def_info,
@@ -7,8 +9,6 @@ from logging import (
 import traceback
 
 from collections import defaultdict
-
-from config import settings
 
 
 INFO_FMT = defaultdict(
@@ -41,7 +41,6 @@ MODULE_FMT = defaultdict(
                  ':%(lineno)d %(message)s'
     }
 )
-
 
 DATE_FMT = defaultdict(
     lambda: '%d.%m %H:%M:%S',

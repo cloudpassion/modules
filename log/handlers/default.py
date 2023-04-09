@@ -1,8 +1,12 @@
+import os
 import sys
 
 from logging import Logger, basicConfig
 
-from config import settings
+try:
+    from config import settings
+except ImportError:
+    pass
 
 from ..rewrite import (
     Formatter, FULL_FMT, INFO_FMT, MODULE_FMT, DATE_FMT,
@@ -13,8 +17,14 @@ from ..log_colors import ColoredFormatter
 
 
 # logger for all other modules
-logger_formatter = ColoredFormatter(fmt=INFO_FMT['color'],
-                                    datefmt=DATE_FMT['color'], use_color=True)
+
+if os.name == 'Posix':
+    logger_formatter = ColoredFormatter(fmt=INFO_FMT['color'],
+                                        datefmt=DATE_FMT['color'], use_color=True)
+else:
+    logger_formatter = ColoredFormatter(fmt=INFO_FMT['d'],
+                                        datefmt=DATE_FMT['d'], use_color=True)
+
 logger_console = StreamHandler(sys.stdout)
 logger_console.setFormatter(logger_formatter)
 #logger_console.setLevel(INFO)
@@ -51,7 +61,13 @@ try:
         default_error = False
     else:
         default_error = True
+
 except Exception:
+    basicConfig(
+        level=10,
+        format=INFO_FMT['d'],
+        datefmt=DATE_FMT['d'],
+    )
     default_error = True
 
 if default_error:

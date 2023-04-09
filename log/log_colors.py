@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import re
 
@@ -25,41 +26,33 @@ def formatter_message(record, use_color=False):
                 find = re.search(f'[$%]{seq.lower()}', record.msg)
                 if find:
                     record.msg = record.msg.replace(find.group(0), color)
+
         elif isinstance(record, str):
             find = re.search(f"[$%]\({seq.lower()}\)s", record)
             if find:
                 record = record.replace(find.group(0), color)
-    
-    if isinstance(record, logging.LogRecord):
-        if isinstance(record.msg, str):
-            record.msg += f'{ALL_COLORS["RESET"]}'
-    else:
-        record += f'{ALL_COLORS["RESET"]}'
+
+    if os.name == 'Posix':
+        if isinstance(record, logging.LogRecord):
+            if isinstance(record.msg, str):
+                record.msg += f'{ALL_COLORS["RESET"]}'
+        else:
+            record += f'{ALL_COLORS["RESET"]}'
+
     return record
-
-
-# class ColoredPercentStyle(logging.PercentStyle):
-#     def format(self, record):
-#         try:
-#             return self._format(record)
-#         except KeyError as e:
-#             raise ValueError('Formatting field not found in record: %s' % e)
-#
-#
-# logging._STYLES = {
-#     '%': (ColoredPercentStyle, logging.BASIC_FORMAT),
-#     '{': (logging.StrFormatStyle, '{levelname}:{name}:{message}'),
-#     '$': (logging.StringTemplateStyle, '${levelname}:${name}:${message}'),
-# }
 
 
 class ColoredFormatter(logging.Formatter):
 
-    def __init__(self, fmt=None, datefmt=None, style='%', validate=True, use_color=False):
-        super(ColoredFormatter, self).__init__(
-            fmt=fmt, datefmt=datefmt, style=style, validate=validate
-        )
+    def __init__(self, fmt=None, datefmt=None, style='%', validate=True, *,
+                 defaults=None,
+                 use_color=False
+                 ):
+
         self.use_color = use_color
+        super(ColoredFormatter, self).__init__(
+            fmt=fmt, datefmt=datefmt, style=style, validate=validate, defaults=defaults,
+        )
 
     def format(self, record):
 
@@ -70,6 +63,7 @@ class ColoredFormatter(logging.Formatter):
 
     def formatTime(self, record, datefmt=None):
         ct = self.converter(record.created)
+
         if datefmt:
             s = formatter_message(time.strftime(datefmt, ct), use_color=self.use_color)
         else:

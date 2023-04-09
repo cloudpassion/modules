@@ -1,5 +1,4 @@
-""" http communicate """
-
+import importlib
 import pathlib
 import time
 import os
@@ -7,34 +6,52 @@ import re
 import random
 import asyncio
 import uuid
-import urllib3
+import ssl
+
+import aiohttp
+import requests
 import requests.adapters
 import requests.structures
 import requests.cookies
 
-import socks
-import websockets
-import aiohttp
-import aresponses
-import responses
-import requests
-import dns.resolver
-import ujson as json
-import ssl
-import certifi
 
 from pathlib import Path
 from collections import deque, defaultdict
-from aiosocksy import Socks5Auth
-from aiosocksy.connector import ProxyClientRequest
-from aiohttp_socks import ProxyConnector, ProxyType
-from urllib3.util import connection
 
 
-from proxy import Proxy, Proxies
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 
-from log import log_stack, parse_traceback, logger
+from ..log import log_stack, parse_traceback, logger
+
+
+for modules in (
+        ('urllib3', ),
+        ('socks', ),
+        ('websockets', ),
+        ('dns.resolver', ),
+        ('aiosocksy', )
+        # from aiosocksy import Socks5Auth
+        # from aiosocksy.connector import ProxyClientRequest
+        # from aiohttp_socks import ProxyConnector, ProxyType
+):
+
+    for module in modules:
+        try:
+            importlib.import_module(module)
+        except ImportError:
+            logger.debug(f'{modules} modules not imported')
+
+try:
+    from urllib3.util import connection
+except ImportError:
+    pass
+
+
+from .proxy import Proxy, Proxies
 
 
 console_services = {'ip': 'http://l2.io/ip'}
@@ -138,9 +155,10 @@ class MyHttpUtils:
 
 class MyHTTPCache:
 
-    def __init__(self, save_cache=False, load_cache=False):
+    def __init__(self, save_cache=False, load_cache=False, save_headers=False):
         self.save_cache = save_cache
         self.load_cache = load_cache
+        self.save_headers = save_headers
 
     def save_after_resp(self, merge_resp=None, update_cookies=False):
 
@@ -177,7 +195,8 @@ class MyHTTPCache:
     def headers_detect(self, operation, headers_data={}, save_data={}, update=True):
 
         if operation == 'save':
-            _save_json_to_file(headers_data, save_data, update=update)
+            if self.save_headers:
+                _save_json_to_file(headers_data, save_data, update=update)
             return save_data
 
         elif operation == 'load':
@@ -248,7 +267,7 @@ class MyHTTPCache:
                     fw.write(merge_resp.content)
 
             """ try save server_headers if request failed with not 200 http.code """
-            if save_headers:
+            if save_headers or self.save_headers:
                 pathlib.Path(
                     os.path.dirname(
                         os.path.abspath(merge_resp.path))).mkdir(parents=True, exist_ok=True)
@@ -450,7 +469,7 @@ class MyHttp:
 
     def __init__(self, timeout=aiohttp.ClientTimeout(total=32, sock_connect=16, sock_read=16),
                  proxy=None, ssl_cert=None, version=aiohttp.HttpVersion11,
-                 save_cache=False, load_cache=False, simulate=False, log=True,
+                 save_cache=False, load_cache=False, save_headers=None, simulate=False, log=True,
                  cache_code=200, cache_text='simulate', cache_content_type='text/html'):
 
         self.headers = {}
@@ -464,8 +483,9 @@ class MyHttp:
         self.version = version
         self.cache = save_cache or load_cache
         self.save_cache = save_cache
+        self.save_headers = save_headers if save_headers else save_cache
         self.load_cache = load_cache
-        self.cache_class = MyHTTPCache(save_cache, load_cache)
+        self.cache_class = MyHTTPCache(save_cache, load_cache, self.save_headers)
         self.simulate = simulate
         self.code = cache_code
         self.cache_text = cache_text
@@ -632,8 +652,9 @@ class MyHttp:
             return task_result
 
     async def get_urls(self, links, max_tasks=100, tasks_timeouts=None,
-                       ssl_cert=None,
-                       save_resp=False, save_headers=False, tmp_dir='.tmp/'):
+                       ssl_cert=None, headers=None,
+                       tmp_dir='.tmp/'):
+
         #logger.info(links)
         _headers_file = None
         tasks = []
@@ -674,8 +695,11 @@ class MyHttp:
             if not _headers_file:
                 _headers_file = _path+'.request_headers'
             if not _headers:
-                _headers = self.cache_class.headers_detect(
-                    'load', headers_data=_headers_file)
+                if headers:
+                    _headers = headers
+                else:
+                    _headers = self.cache_class.headers_detect(
+                        'load', headers_data=_headers_file)
             #tasks.append(
             #    asyncio.create_task(
             #        MyHttp(proxy=self.proxy).get(
@@ -685,7 +709,10 @@ class MyHttp:
             tasks.append(
                 asyncio.create_task(self.get_urls_semaphore(
                     tasks_timeouts,
-                    MyHttp(proxy=self.proxy, ssl_cert=ssl_cert, version=self.version).do(
+                    MyHttp(
+                        proxy=self.proxy, ssl_cert=ssl_cert, version=self.version,
+                        save_headers=self.save_headers,
+                    ).do(
                         'get',
                         url=_url, path=_path, headers=_headers, tmp_dir=tmp_dir)
                 )
@@ -1368,28 +1395,4 @@ class MyWSS:
                 return MyWSSMessage(True, ok=True).js, request_id
         except:
             log_stack.info('MyWSS')
-
-
-@responses.activate
-def requests_simulate(url='http://ggg', code=200, text='simulate',
-                      js={}, content_type='text/plain', proxy=None, path=None, tmp_dir=''):
-
-    if js:
-        responses.add(responses.GET, url,
-                      json=js, status=code)
-    else:
-        responses.add(responses.GET, url,
-                      body=text, status=code,
-                      content_type=content_type)
-
-    _resp = requests.get(url)
-
-    return MergeResp(
-        _resp.text, _resp.content, _resp.headers, _resp.status_code, _resp.url,
-        path=tmp_dir+path if path \
-                             and isinstance(path, str) \
-            else MyHttpUtils().make_path(url, tmp_dir=tmp_dir) if path else None,
-        proxy=proxy, error=False
-    )
-
 
