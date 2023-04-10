@@ -483,7 +483,7 @@ class MyHttp:
         self.version = version
         self.cache = save_cache or load_cache
         self.save_cache = save_cache
-        self.save_headers = save_headers if save_headers else save_cache
+        self.save_headers = save_headers if save_headers is not None else save_cache
         self.load_cache = load_cache
         self.cache_class = MyHTTPCache(save_cache, load_cache, self.save_headers)
         self.simulate = simulate
