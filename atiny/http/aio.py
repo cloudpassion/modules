@@ -283,7 +283,7 @@ class MyHTTPCache:
 class MyRequestsHTTP:
 
     def __init__(self, con_try=3, proxy=None, headers=requests.structures.CaseInsensitiveDict({}),
-                 save_cache=False, load_cache=False, simulate=False, log=True,
+                 save_cache=False, load_cache=False, simulate=False, log=True, save_headers=None,
                  cache_code=200, cache_text='simulate', cache_json={}, cache_content_type='text/html',
                  ssl_cert=False,
                  timeout=(10, 20), max_redirects=1, dns_rewrite=False, dns_rewrite_address='8.8.8.8', *args, **kwargs):
@@ -305,7 +305,8 @@ class MyRequestsHTTP:
         self.cache = save_cache or load_cache
         self.save_cache = save_cache
         self.load_cache = load_cache
-        self.cache_class = MyHTTPCache(save_cache, load_cache)
+        self.save_headers = save_headers if save_headers is not None else save_cache
+        self.cache_class = MyHTTPCache(save_cache, load_cache, self.save_headers)
         self.simulate = simulate
         self.code = cache_code
         self.cache_text = cache_text
@@ -483,7 +484,7 @@ class MyHttp:
         self.version = version
         self.cache = save_cache or load_cache
         self.save_cache = save_cache
-        self.save_headers = save_headers if save_headers else save_cache
+        self.save_headers = save_headers if save_headers is not None else save_cache
         self.load_cache = load_cache
         self.cache_class = MyHTTPCache(save_cache, load_cache, self.save_headers)
         self.simulate = simulate
