@@ -2,7 +2,6 @@ import telethon.events.common
 from telethon import events, TelegramClient
 from collections import defaultdict
 
-from atiny.date import dt_parse
 from config import settings, secrets
 from log import logger, log_stack
 
