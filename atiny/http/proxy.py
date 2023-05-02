@@ -1,7 +1,30 @@
+import random
+
+try:
+    from log import logger
+except ImportError:
+    from ..log import logger
+
+try:
+    from aiosocksy import Socks5Auth
+    from aiosocksy.connector import ProxyClientRequest
+except ImportError:
+    logger.info(f'need install aiosocksy for using Socks5Auth, ProxyClientRequest')
+
+try:
+    from aiohttp_socks import ProxyConnector, ProxyType
+except ImportError:
+    logger.info(f'need install aiohttp_socks for ProxyConnecton, ProxyType')
+
+try:
+    import socks
+except ImportError:
+    logger.info(f'need install requests[socks] for socks')
 
 
 class Proxy:
     def __init__(self, prx, login=None, password=None):
+
         if isinstance(prx, Proxy):
             self.f = prx.f
             self.adr = prx.adr

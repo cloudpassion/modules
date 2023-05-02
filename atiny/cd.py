@@ -1,6 +1,6 @@
 import os
 
-from .log import logger
+from atiny.log import logger
 
 
 def cd(_file):

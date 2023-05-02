@@ -1,7 +1,10 @@
 import threading
 import ctypes
 
-from .log import logger, log_stack
+try:
+    from log import logger
+except ImportError:
+    from .log import logger
 
 
 class ThreadWithException(threading.Thread):
