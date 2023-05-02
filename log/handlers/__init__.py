@@ -3,14 +3,21 @@ import asyncio
 import os
 
 from config import settings, secrets
+
 try:
     from lipsock import MySSHProxy
 except:
     pass
 
-from atiny.mthread import ThreadWithException
+try:
+    from atiny.mthread import ThreadWithException
+except:
+    from ..mthread import ThreadWithException
+
 from .hkafka import init_kafka_handler
-from .default import logger, flogger, mlog, INFO, DEBUG, CRITICAL, ERROR, WARNING
+from .default import (
+    logger, flogger, mlog, INFO, DEBUG, CRITICAL, ERROR, WARNING
+)
 from .stack import test_stack, test_logger, log_stack
 
 
