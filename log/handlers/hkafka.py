@@ -4,7 +4,11 @@
 
 import logging
 import asyncio
-import ujson as json
+
+try:
+    import ujson as json
+except ImportError:
+    import json
 
 try:
     from kafka import KafkaProducer
