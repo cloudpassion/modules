@@ -71,7 +71,6 @@ except Exception:
     default_error = True
 
 if default_error:
-    print('here2')
     basicConfig(
         level=ERROR,
         format=INFO_FMT['d'],
