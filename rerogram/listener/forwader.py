@@ -1,7 +1,7 @@
 from pyrogram import Client as PyrogramClient
 from collections import defaultdict
 
-from atiny.date import dt_parse
+from atiny.datime.date import dt_parse
 from config import settings
 from log import logger, log_stack
 
