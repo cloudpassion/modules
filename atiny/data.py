@@ -179,16 +179,16 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
-def cava_progress(percent, path='/home/' + os.getenv('USER') + '/.i3/coub.log'):
-    ret = r''
-    for i in range(0, 9):
-        if percent > (i * 10):
-            ret += '1 '
-        else:
-            ret += '0 '
-
-    with open(path) as cw:
-        cw.write(ret)
+#def cava_progress(percent, path='/home/' + os.getenv('USER') + '/.i3/coub.log'):
+#    ret = r''
+#    for i in range(0, 9):
+#        if percent > (i * 10):
+#            ret += '1 '
+#        else:
+#            ret += '0 '
+#
+#    with open(path) as cw:
+#        cw.write(ret)
 
 
 def defrd(x, y=0, _int=False):
