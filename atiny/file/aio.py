@@ -13,7 +13,10 @@ import ujson as json
 from datetime import datetime
 from pathlib import Path
 
-from .log import logger, log_stack
+try:
+    from log import logger
+except ImportError:
+    from ..log import logger
 
 
 def make_zipfile(output_filename, source_dir):
