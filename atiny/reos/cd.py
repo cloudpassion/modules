@@ -1,6 +1,9 @@
 import os
 
-from atiny.log import logger
+try:
+    from log import logger
+except ImportError:
+    from ..log import logger
 
 
 def cd(_file):
