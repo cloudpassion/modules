@@ -10,7 +10,7 @@ except ImportError:
 
 
 from .utils import MyHttpUtils
-from atiny.stuff.file_data import DataFile
+from ..reos.file.data import DataFile
 from .merge import MergeResp
 
 

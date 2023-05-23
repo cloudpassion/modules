@@ -1,39 +1,28 @@
-import logging
 import sys
-
-try:
-    import configparser
-except ImportError:
-    pass
-
 import random
 import string
+import configparser
+
+try:
+    from log import logger
+except ImportError:
+    from ..log import logger
+
 try:
     import psutil
 except ImportError:
     pass
+
 import json
 import os
 
 from collections import defaultdict
-from bs4 import BeautifulSoup
 
-from .log import logger
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    logger.info(f'need instal beautifulsoup4 for bs4')
 
-
-class JSONObject:
-    def __init__(self, _dict):
-        vars(self).update(_dict)
-
-
-def json_as_class(resp_text, encoding='utf8'):
-    #logger.info(f'type: {type(resp_text)}, resp: {resp_text}')
-    if isinstance(resp_text, dict):
-        return json.loads(json.dumps(resp_text), object_hook=JSONObject)
-    elif not resp_text:
-        return json.loads('{}', object_hook=JSONObject)
-    else:
-        return json.loads(resp_text.decode(encoding), object_hook=JSONObject)
 
 
 class MyTextClass:

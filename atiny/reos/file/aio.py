@@ -2,21 +2,28 @@ import os
 import hashlib
 import zipfile
 import lzma
-import magic
 import re
 import imghdr
 import io
 import gzip as gzip_module
 
-import ujson as json
+try:
+    import ujson as json
+except ImportError:
+    import json
+
+try:
+    from log import logger, log_stack
+except ImportError:
+    from ...log import logger, log_stack
+
+try:
+    import magic
+except ImportError:
+    logger.info(f'need install pythonmagic for magic works')
 
 from datetime import datetime
 from pathlib import Path
-
-try:
-    from log import logger
-except ImportError:
-    from ..log import logger
 
 
 def make_zipfile(output_filename, source_dir):

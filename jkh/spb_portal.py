@@ -5,15 +5,23 @@ import os
 
 from datetime import datetime
 from collections import namedtuple
-from bs4 import BeautifulSoup, element
 from email import utils
-from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
+from log import logger
 
-from log import logger, log_stack
-from atiny.feed import MyRfeed
-from atiny.file import create_dir
+try:
+    from selenium import webdriver
+    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+except ImportError:
+    logger.info(f'need install selenium for webdriver and others')
+
+try:
+    from bs4 import BeautifulSoup, element
+except ImportError:
+    logger.info(f'need install beautifulsoup4 for bs4')
+
+from atiny.feed.rss import MyRfeed
+from atiny.reos.file.aio import create_dir
 from atiny.http import MyHttp
 
 

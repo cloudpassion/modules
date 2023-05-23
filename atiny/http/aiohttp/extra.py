@@ -1,3 +1,13 @@
+try:
+    from log import logger, log_stack
+except ImportError:
+    from atiny.log import logger, log_stack
+
+try:
+    import aiohttp
+except ImportError:
+    logger.info(f'need to install aiohttp for MockSave')
+
 
 class MockSave:
 

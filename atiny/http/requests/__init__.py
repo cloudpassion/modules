@@ -22,7 +22,11 @@ from ..proxy import Proxy
 from ..cache import MyHTTPCache
 from ..merge import MergeResp
 from ..utils import MyHttpUtils
-from ..simulate import requests_simulate
+
+try:
+    from ..simulate import requests_simulate
+except ImportError:
+    logger.info(f'need to install requests_simulate for simulating requests')
 
 from .rewrites import MyRequestsRewrites
 

@@ -1,10 +1,20 @@
 from imaplib import IMAP4, IMAP4_SSL, IMAP4_PORT, IMAP4_SSL_PORT
 from poplib import POP3, POP3_SSL, POP3_PORT, POP3_SSL_PORT
 from smtplib import SMTP, SMTP_SSL, SMTP_PORT, SMTP_SSL_PORT
-from socks import (
-    create_connection,
-    PROXY_TYPE_HTTP, PROXY_TYPE_SOCKS4, PROXY_TYPE_SOCKS5
-)
+
+try:
+    from log import logger
+except ImportError:
+    from ...log import logger
+
+try:
+    from socks import (
+        create_connection,
+        PROXY_TYPE_HTTP, PROXY_TYPE_SOCKS4, PROXY_TYPE_SOCKS5
+    )
+except ImportError:
+    logger.info(f'need to install PySocks for mail proxy works')
+
 import socket
 import sys
 from urllib.parse import urlparse

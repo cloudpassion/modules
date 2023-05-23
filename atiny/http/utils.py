@@ -4,8 +4,8 @@ import pathlib
 
 try:
     from log import logger
-except:
-    from atiny.log import logger
+except ImportError:
+    from ..log import logger
 
 try:
     import dns.resolver
