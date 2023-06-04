@@ -11,18 +11,25 @@ import json
 import requests
 import hashlib
 
-from . import handlers
+# from . import handlers
 import logging as log
-import my.tg as logging
+import logging as logging
+#import my.tg as logging
 
-from my.f import *
-from my.sql import *
+from f import *
+from sql import *
 
-from my.config import secrets
+from config import secrets
 global bot
 global last_message
 
 last_message = { 99999: [ False, 0, 'json' ] }
+
+global cids
+global tg_trash
+
+tg_trash = secrets.tg_trash
+
 
 def tg_init(_andrey = False):
    
@@ -36,6 +43,7 @@ def tg_init(_andrey = False):
                 cids = f.readlines()
         else:
             cids = secrets.cids
+            print(f'{cids=}')
     else:
         if os.path.isfile('.chatsA.ids'):
             with open('.chatsA.ids', 'r') as f:
@@ -56,6 +64,7 @@ def tg_init(_andrey = False):
 
     for _dir in [ 'last_message' ]:
         dircr(_dir)
+
 
 def tg_update():
     
@@ -362,19 +371,28 @@ def tg_send_media(
             alb_send = []
             alb_send_ids = []
             if _imgl[1] == 'file':
-                for _file in _imgl[2]:
+                for _n, _file in enumerate(_imgl[2]):
                     
                     _check_md5 = tg_check_file_mdid(_file)
                     if _check_md5[0]:
                         _main_photo_id = _check_md5[1]
-                        alb_send.append(InputMediaPhoto(_main_photo_id))
+                        alb_send.append(
+                            InputMediaPhoto(
+                                _main_photo_id,
+                                caption=_caption if _n == 0 else None,
+                            )
+                        )
                         alb_send_ids.append(_main_photo_id)
                         continue
 
                     file_size = 0
                     _main_photo_id = None
                     with open(_file, 'rb') as frb:
+                        global tg_trash
                         _t = tg_send_media(tg_trash, frb, '', media='photo')
+                        if not _t:
+                            return
+
                         for item in _t:
                             for ph in item.photo:
                                 if ph.file_size >= file_size:
@@ -383,14 +401,24 @@ def tg_send_media(
 
                     if not _main_photo_id == None:
                         tg_safe_file_mdid(_file, _main_photo_id)
-                        alb_send.append(InputMediaPhoto(_main_photo_id))
+                        alb_send.append(
+                            InputMediaPhoto(
+                                _main_photo_id,
+                                caption=_caption if _n == 0 else None,
+                            )
+                        )
                         alb_send_ids.append(_main_photo_id)
 
             print(alb_send)
             print(alb_send_ids)
-            resp.append(bot.send_media_group(_cid, alb_send,
+            resp.append(
+                bot.send_media_group(
+                    _cid, alb_send,
                     disable_notification=disable_notification,
-                    reply_to_message_id=reply_to_message_id))
+                    reply_to_message_id=reply_to_message_id,
+
+                )
+                        )
 
             if _caption:
                 parse_last_message(resp[-1])
@@ -422,7 +450,7 @@ def tg_send_media(
         return resp
     except telebot.apihelper.ApiException as exc_api:
         zzz = str(exc_api).splitlines()[-1].replace('[','').replace(']','').replace('b\'','').replace('\'','')
-        print(exc_api)
+        # print(exc_api)
         try:
             dd = json.loads(zzz)
             if dd["error_code"] == 429:
@@ -496,14 +524,19 @@ def tg_send_loop(text):
     
     _work_text = list(_text)
 
-    if _work_text[4][0] and not _work_text[4][1] == None:
-        img = get_img(_work_text[4][1])
-    if not img[0]:
-        img = search_img(_work_text[2])
-        print('after search_img')
+    # print(_work_text[4])
+    if f'{_work_text[4][1]}' == 'file':
+        pass
+        img = _work_text[4]
     else:
-        print('after get_img')
-    print('img -> ' + str(img))
+        if _work_text[4][0] and not _work_text[4][1] == None:
+            img = get_img(_work_text[4][1])
+        if not img[0]:
+            img = search_img(_work_text[2])
+            print('after search_img')
+        else:
+            print('after get_img')
+        print('img -> ' + str(img))
 
     ''' remove tags from text'''
     _work_text = tg_prepare_text(_work_text)
@@ -512,15 +545,39 @@ def tg_send_loop(text):
         _caption = _work_text[1]+'\n'+tiny_url(_work_text[0])
         _send_text = _work_text[2]
 
-        photo = open('1.jpg', 'rb')
+        #if isinstance(img[1], list):
+        if f'{img[1]}' == 'file':
+            pass
+        else:
+            photo = open('1.jpg', 'rb')
 
         for _cid in cids:
             cid = _cid.splitlines()[0]
             
 #            try:
-            tg_send_media(
-                cid, photo, _caption, media=img[1], _debug=str(img)+' '+str(text)
-            )
+#             print(f'{img=}')
+#             if isinstance(img[1], list):
+            if f'{img[1]}' == 'file':
+                t = tg_send_media(
+                    cid, img, _caption, media='album',
+                    _debug=str(img)+' '+str(text)
+                )
+                if not t:
+                    img[1] = 'other_way'
+                    try:
+                        photo = open(img[2][0], 'rb')
+                        tg_send_media(
+                            cid, photo, _caption, media='image',
+                            _debug=str(img)+' '+str(text)
+                        )
+                    except Exception:
+                        pass
+
+            else:
+                tg_send_media(
+                    cid, photo, _caption, media=img[1],
+                    _debug=str(img)+' '+str(text)
+                )
             
             #if img[1] == 'image':
             #    tg_send_photo(cid, photo, _caption, _debug=str(img)+' '+str(text))
@@ -538,8 +595,16 @@ def tg_send_loop(text):
             #    _send_text = _work_text[1]+'\n'+tiny_url(_work_text[0])+'\n'+_work_text[2]
             #    print('img_caption fix')
             #    logging.debug('img_caption fix ' + str(_work_text)+'\n', exc_info=True)
-            photo.seek(0)
-        photo.close()
+            if f'{img[1]}' == 'file':
+                pass
+            else:
+                photo.seek(0)
+
+        # if isinstance(img[1], list):
+        if f'{img[1]}' == 'file':
+            pass
+        else:
+            photo.close()
     else:
         _send_text = _work_text[1]+'\n'+tiny_url(_work_text[0])+'\n'+_work_text[2]
 

@@ -26,6 +26,7 @@ global global_films, global_tfilms
 global_films = set()
 global_tfilms = []
 
+
 def get_upcoming_imdb():
     
     entries = []

@@ -1,16 +1,22 @@
 import time
 import os
 import re
-import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
+try:
+    import requests
+    from requests.adapters import HTTPAdapter
+    from requests.packages.urllib3.util.retry import Retry
+except ImportError:
+    pass
 
 import urllib.parse
 
 import logging as log
-import my.tg as logging
+# import my.tg as logging
 
-import imghdr, magic
+try:
+    import imghdr, magic
+except ImportError:
+    pass
 import json
 
 import string
@@ -61,7 +67,8 @@ def find_url(_message):
                 _Lret.append(url)
                 _finded = True
             except:
-                logging.debug('urls_loop:'+_message+' '+urls, exc_info=True, stack_info=True)
+                pass
+                # logging.debug('urls_loop:'+_message+' '+urls, exc_info=True, stack_info=True)
             return [ False, False, '' ]
 
     return [ _finded, True, _Lret ]
@@ -182,7 +189,7 @@ def check_img(_link):
             try:
                 r = frSes.get(_link, allow_redirects=True, timeout=30.0)
             except:
-                logging.debug('check_img_1 frSes.get:', exc_info=True, stack_info=True)
+                # logging.debug('check_img_1 frSes.get:', exc_info=True, stack_info=True)
                 return [ False, 'network' ]
 
         #except:
@@ -195,7 +202,7 @@ def check_img(_link):
             try:
                 r = frSes.get('https:'+_link, allow_redirects=True, timeout=20.0)
             except:
-                logging.debug('check_img_2:', exc_info=True, stack_info=True)
+                # logging.debug('check_img_2:', exc_info=True, stack_info=True)
                 return [ False, 'SSL_check_img_2' ]
 
     with open('1.jpg', 'wb') as f_img:
@@ -225,7 +232,7 @@ def check_img(_link):
                 return [ True, 'riff webp' ]
             else:
                 print('_check_img:magic:unknow '+str(_m)+' '+_link)
-                logging.debug('_check_img:unknow: '+str(_m)+' '+_link)
+                # logging.debug('_check_img:unknow: '+str(_m)+' '+_link)
 
         return [ False, 'NONE1' ]
     else:
@@ -241,7 +248,7 @@ def photo_type(_str):
         _tph = photo_type(str(magic.detect_from_filename('1.jpg').mime_type)) # , mime=True)))
         return _tph
     else:
-        logging.debug('photo_type:unknow: '+_str+' '+_str)
+        # logging.debug('photo_type:unknow: '+_str+' '+_str)
         return 'image'
 
 def get_img(_link):
@@ -290,7 +297,7 @@ def get_img(_link):
                 _wiki = _link+'/1024px-'+_link.split('/')[-1]
             except:
                 _wiki = _link
-                logging.debug('FIXWIKIGIMG '+_link)
+                # logging.debug('FIXWIKIGIMG '+_link)
 
             return check_img(_wiki)
 
@@ -303,10 +310,10 @@ def get_img(_link):
                     except:
                         try: _ytb_t = _link.split('/')[-1]
                         except: 
-                            logging.debug('FIXYTB_RETURN_FALSE:'+_link)
+                            # logging.debug('FIXYTB_RETURN_FALSE:'+_link)
                             return [ False, '' ]
-            try: _ytb_t = _ytb_t.split('?')[0]
-            except: logging.debug('FIX:YTB_QUESTION')
+            # try: _ytb_t = _ytb_t.split('?')[0]
+            # except: logging.debug('FIX:YTB_QUESTION')
 
             #logging.debug(_ytb_t)
             from my.config import secrets
@@ -392,7 +399,7 @@ def get_img(_link):
         else:
             try: return check_img(_link)
             except:
-                logging.debug('fix add link img: ' + _link)
+                # logging.debug('fix add link img: ' + _link)
                 return [ False, '' ]
 
 def reddit_img(_rtext):

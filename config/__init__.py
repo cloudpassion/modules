@@ -1,5 +1,6 @@
 from os import getcwd
-from omegaconf import OmegaConf, errors
+
+from omegaconf import OmegaConf
 
 try:
     settings = OmegaConf.load('settings.yml')
