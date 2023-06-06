@@ -7,6 +7,7 @@ from log import logger, log_stack
 
 from ..kinozaltv.details import DetailsPage
 from ..kinozaltv.browse import BrowsePage, BrowseItem
+from ..kinozaltv.top import TopPage, TopItem
 
 from ..getmov import GetMovies
 from .db import SkipDB
@@ -43,6 +44,8 @@ class KinozalMonitor:
         ]
 
         titles = GetMovies().get_year_titles(title_year)
+        if not titles:
+            return
 
         for title in titles:
 
@@ -109,7 +112,7 @@ class KinozalMonitor:
             await self.notify_release(item)
 
     async def check_notify(
-            self, item: Union[BrowseItem, DetailsPage],
+            self, item: Union[BrowseItem, DetailsPage, TopItem],
             titles, years,
     ):
 
@@ -125,18 +128,22 @@ class KinozalMonitor:
             logger.info(f'skip translate {item.name=}')
             return
 
-        if item.year not in years:
-            logger.info(f'{item.year=} not in {years=}')
-            return
+        if years is not None:
+            if item.year not in years:
+                logger.info(f'{item.year=} not in {years=}')
+                return
 
         skip = True
 
-        if item.title in titles:
-            logger.info(f'{item.title=} in titles')
-            skip = False
+        if titles is not None:
+            if item.title in titles:
+                logger.info(f'{item.title=} in titles')
+                skip = False
 
-        if item.en_title in titles:
-            logger.info(f'{item.en_title=} in titles')
+            if item.en_title in titles:
+                logger.info(f'{item.en_title=} in titles')
+                skip = False
+        else:
             skip = False
 
         if skip:
@@ -144,9 +151,12 @@ class KinozalMonitor:
         else:
             return True
 
-    async def notify_release(self, item: Union[BrowseItem, DetailsPage]):
+    async def notify_release(
+            self,
+            item: Union[BrowseItem, DetailsPage, TopItem]
+    ):
 
-        if isinstance(item, BrowseItem):
+        if isinstance(item, (BrowseItem, TopItem)):
             details_page = DetailsPage(id=item.id)
             await details_page.get_details()
         else:
@@ -254,9 +264,8 @@ class KinozalMonitor:
 
         items = []
         for category in ['films', 'serials', 'cartoons']:
-            logger.info(f'search in {category}')
             for page in range(0, 10):
-                logger.info(f'{page=}')
+                logger.info(f'search in {category} on {page=}')
 
                 while True:
                     try:
@@ -275,7 +284,10 @@ class KinozalMonitor:
             await asyncio.sleep(5)
 
         for release_year in years:
+
             titles = GetMovies().get_year_titles(year=release_year)
+            if not titles:
+                continue
 
             for item in items:
                 item: BrowseItem
@@ -289,5 +301,56 @@ class KinozalMonitor:
 
                 await self.notify_release(item)
 
+    async def top_releases(
+            self, year, years, uploaded_in,
+    ):
 
+        items = []
+        for category in [
+            # 'best_shares',
+            'films',
+            'serials', 'cartoons',
+        ]:
+            for uploaded in uploaded_in:
+                for sort in ['peers', 'seeds', 'comments']:
 
+                    for page in range(0, 20):
+                        logger.info(f'search in {category} '
+                                    f'on {uploaded} '
+                                    f'with sorting by {sort} '
+                                    f'in {page=}')
+
+                        while True:
+                            try:
+                                top_page = TopPage()
+                                await top_page.get_top(
+                                    category=category,
+                                    sort=sort,
+                                    uploaded=uploaded,
+                                    page=page,
+                                    release_years=year,
+                                )
+                                break
+                            except Exception:
+                                log_stack.error('stack')
+                                await asyncio.sleep(10)
+
+                        if not top_page.items:
+                            break
+
+                        items.extend(top_page.items)
+                        await asyncio.sleep(1)
+
+                    await asyncio.sleep(5)
+
+        for item in items:
+            item: TopItem
+
+            check = await self.check_notify(
+                item=item, titles=None,
+                years=years,
+            )
+            if not check:
+                continue
+
+            await self.notify_release(item)

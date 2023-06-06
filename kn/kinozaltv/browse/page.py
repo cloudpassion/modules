@@ -43,15 +43,11 @@ class BrowsePage(
 ):
 
     keys = [
-        'items',
+        'items', 'page', 'pages'
     ]
 
     items: list = []
     pages: int = 0
-
-    wheres = {
-        'everywhere': 0,
-    }
 
     categories = {
         'all': 0,
@@ -86,6 +82,10 @@ class BrowsePage(
     sorts_order = {
         'decrease': 0,
         'increase': 1
+    }
+
+    wheres = {
+        'everywhere': 0,
     }
 
     def __init__(self):
@@ -178,6 +178,9 @@ class BrowsePage(
         else:
             pages = 1
 
+        current = paginator.find('li', {'class': 'current'})
+        page = int(current.text)
+
         soup_items = soup.find_all('td', {'class': 'nam'})
         items = []
 
@@ -239,4 +242,7 @@ class BrowsePage(
 
             items.append(item)
 
-        self.items = items
+        _locals = locals()
+        for key, value in _locals.items():
+            if key in self.keys:
+                setattr(self, key, value)
