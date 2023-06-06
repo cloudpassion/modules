@@ -38,7 +38,7 @@ class FromFiles:
                 lines = fr.read()
 
             for line in lines.splitlines():
-                logger.info(f'{line=}')
+                # logger.info(f'{line=}')
                 titles.add(line.splitlines()[0])
 
         with open(

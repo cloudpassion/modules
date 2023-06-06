@@ -285,10 +285,12 @@ class KinozalMonitor:
 
         for release_year in years:
 
+            logger.info(f'main rel: {release_year=}')
             titles = GetMovies().get_year_titles(year=release_year)
             if not titles:
                 continue
 
+            logger.info(f'{len(items)=}')
             for item in items:
                 item: BrowseItem
 
