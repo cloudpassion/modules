@@ -1,5 +1,6 @@
 from atiny.http import MyHttp
 
+from log import logger
 from config import settings, secrets
 
 
@@ -33,6 +34,8 @@ class Http:
             load_cache = settings.http.cache.load
         except AttributeError:
             load_cache = False
+
+        logger.info(f'{save_cache=}, {load_cache=}')
 
         http = MyHttp(
             proxy=self.proxy, ssl_cert=self.proxy_ssl_cert,

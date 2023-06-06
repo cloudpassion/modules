@@ -186,7 +186,7 @@ class BrowsePage(
 
         for soup_item in soup_items:
 
-            # logger.info(f'{soup_item=}')
+            logger.info(f'{soup_item=}')
 
             details = soup_item.find('a').get('href')
             id = details.split('=')[1]
