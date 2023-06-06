@@ -8,8 +8,8 @@ class Http:
 
     host = 'kinozal.tv'
     try:
-        proxy = settings.http.proxy.address
-        proxy_ssl_cert = settings.http.proxy.ssl_cert
+        proxy = secrets.http.proxy.address
+        proxy_ssl_cert = secrets.http.proxy.ssl_cert
     except AttributeError:
         proxy = None
         proxy_ssl_cert = None
@@ -34,8 +34,6 @@ class Http:
             load_cache = settings.http.cache.load
         except AttributeError:
             load_cache = False
-
-        logger.info(f'{save_cache=}, {load_cache=}')
 
         http = MyHttp(
             proxy=self.proxy, ssl_cert=self.proxy_ssl_cert,
