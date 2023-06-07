@@ -311,12 +311,17 @@ class MyAbstractTelegramClient(
                 if count >= 50:
                     logger.info(f'w fm, {event.chat.id=}, {from_reply_id=},'
                                 f' {event.id}')
-                    count = 0
+                    # count = 0
                     check_msg = await self.get_messages(
                         event.chat.id, [from_reply_id, ]
                     )
                     if not check_msg or check_msg[0].empty or check_msg[0].service:
                         break
+
+                if count >= 100:
+                    logger.info(f'100 break, {event.chat.id=}, {from_reply_id=},'
+                                f' {event.id}')
+                    break
 
                 count += 1
                 await asyncio.sleep(0.1)
