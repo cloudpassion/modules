@@ -1,5 +1,6 @@
 import os
 import pathlib
+import urllib.parse
 
 
 try:
@@ -47,3 +48,16 @@ class MyHttpUtils:
         answer = r.query(host)
         for rdata in answer:
             return str(rdata)
+
+    def quote(self, text, colon=False, *args, **kwargs):
+        if not colon:
+            return urllib.parse.quote(text, *args, **kwargs)
+
+        _quoted = urllib.parse.quote(text, *args, **kwargs)
+        return _quoted.replace(':', '%3A')
+
+    def quote_plus(self, text, *args, **kwargs):
+        return urllib.parse.quote_plus(text, *args, **kwargs)
+
+    def urlencode(self, text):
+        return urllib.parse.urlencode(text, quote_via=self.quote)

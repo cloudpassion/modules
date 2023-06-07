@@ -32,12 +32,13 @@ class MyHttp(
             self,
             timeout=(32, 16, 16),
             proxy=None, ssl_cert=None,
-            version=aiohttp.HttpVersion11,
+            version=1.1,
             save_cache=False, load_cache=False, save_headers=None,
             log=True,
             simulate=False, simulate_code=200, simulate_response='simulate', simulate_content_type='text/html'
     ):
 
+        self.log = log
         self.headers = {}
         self.proxy = Proxy(proxy)
 
@@ -48,7 +49,13 @@ class MyHttp(
         self.timeout = aiohttp.ClientTimeout(
             *timeout,
         )
-        self.version = version
+        if version == aiohttp.HttpVersion10 or version == 1.0:
+            self.version = aiohttp.HttpVersion10
+        # elif version == aiohttp.HttpVersion11 or version == 1.1:
+        #     self.version = aiohttp.HttpVersion11
+        else:
+            self.version = aiohttp.HttpVersion11
+
         self.cache = save_cache or load_cache
         self.save_cache = save_cache
         self.save_headers = save_headers if save_headers is not None else save_cache
@@ -58,7 +65,6 @@ class MyHttp(
         self.simulate_code = simulate_code
         self.simulate_response = simulate_response
         self.simulate_content_type = simulate_content_type
-        self.log = log
 
     def _proxy_detect(self):
 
@@ -68,16 +74,18 @@ class MyHttp(
                 self.ssl_context.load_cert_chain(self.ssl_cert)
 
             #self._connector = ProxyConnector(remote_resolve=True, ssl_context=self.ssl_context)
-            logger.info(f'prx: {self.proxy.aio_str}, ssl: {self.ssl_context}')
-            self._connector = ProxyConnector(
-                proxy_type=self.proxy.aio_type,
-                host=self.proxy.adr,
-                port=self.proxy.port,
-                username=self.proxy.login,
-                password=self.proxy.password,
-                rdns=True,
-                ssl=self.ssl_context,
-            )
+            if self.log:
+                logger.info(f'prx: {self.proxy.aio_str}, ssl: {self.ssl_context}')
+
+            # self._connector = ProxyConnector(
+            #     proxy_type=self.proxy.aio_type,
+            #     host=self.proxy.adr,
+            #     port=self.proxy.port,
+            #     username=self.proxy.login,
+            #     password=self.proxy.password,
+            #     rdns=True,
+            #     ssl=self.ssl_context,
+            # )
             self._connector = aiohttp.TCPConnector()
             #    'socks5://user:password@127.0.0.1:1080'
             #)
@@ -97,16 +105,19 @@ class MyHttp(
             self._connector = aiohttp.TCPConnector()
             self._client = aiohttp.ClientRequest
 
-    async def get(self, url, *args, **kwargs):
+    async def get(self, url, *args, **kwargs) -> MergeResp:
         return await self.do('get', url, *args, **kwargs)
 
-    async def post(self, url, *args, **kwargs):
+    async def post(self, url, *args, **kwargs) -> MergeResp:
         return await self.do('post', url, *args, **kwargs)
 
-    async def head(self, url, *args, **kwargs):
+    async def head(self, url, *args, **kwargs) -> MergeResp:
         return await self.do('head', url, *args, **kwargs)
 
-    async def do(self, method, url, headers=None, data=None, path=None, tmp_dir='.tmp'):
+    async def do(
+            self, method, url,
+            headers=None, data=None, path=None, tmp_dir='.tmp'
+    ) -> MergeResp:
 
         _cache_resp = self.cache_class.load_content(url=url, path=path, tmp_dir=tmp_dir)
         if _cache_resp:
