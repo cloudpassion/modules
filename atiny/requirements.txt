@@ -1,0 +1,18 @@
+# http full
+# MyRequestsHTTP
+requests
+requests[socks]
+urllib3
+PySocks
+
+# aiohttp
+aiohttp
+aiosocksy
+aiohttp_socks
+
+# other
+dnspython
+ujson
+responses
+aresponses
+websockets

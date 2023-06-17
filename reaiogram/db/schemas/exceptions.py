@@ -1,0 +1,4 @@
+
+
+class DbBreakException(Exception):
+    pass
