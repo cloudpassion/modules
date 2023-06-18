@@ -16,8 +16,12 @@ from .db import SkipDB
 from otg import tg_send_loop
 from atiny.http import MyHttp
 
+from .default import MonMovDefault
 
-class KinozalMonitor:
+
+class KinozalMonitor(
+    MonMovDefault,
+):
     db: SkipDB
     skip_names: list
     skip_imdb: list

@@ -1,10 +1,17 @@
 import time
 
+from config import secrets
 
 from atiny.reos.dir.create import create_dir
 
 
 class GetMovDefault:
+
+    def __init__(
+            self,
+    ):
+
+        self.proxy = secrets.http.proxy.address
 
     user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
 

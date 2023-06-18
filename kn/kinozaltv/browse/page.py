@@ -208,7 +208,7 @@ class BrowsePage(
             name = soup_item.text
             splitted_name = name.split('/')
             # logger.info(f'{name=}')
-            # logger.info(f'{splitted_name=}')
+            logger.info(f'{splitted_name=}')
             title = splitted_name[0][0:-1]
             ru_title = title
             en_title = splitted_name[1][1:][0:-1]
@@ -225,11 +225,14 @@ class BrowsePage(
             except ValueError:
                 pass
 
-            translate = splitted_name[3][1:][0:-1]
             try:
-                ripped = splitted_name[4][1:]
+                translate = splitted_name[3][1:][0:-1]
+                try:
+                    ripped = splitted_name[4][1:]
+                except IndexError:
+                    ripped = None
             except IndexError:
-                ripped = None
+                pass
 
             seeds = parent.find('td', {'class': 'sl_s'}).text
             peers = parent.find('td', {'class': 'sl_p'}).text
