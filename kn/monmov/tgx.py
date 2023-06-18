@@ -34,7 +34,7 @@ class TgxMonitor(
         self.skip_imdb = self.db.fdb_get_skip('imdb')
 
     async def hot_picks_releases(
-            self, year, years,
+            self, year, years=None,
     ):
 
         items = []
