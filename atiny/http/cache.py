@@ -84,6 +84,9 @@ class MyHTTPCache:
         js = js_data.load()
 
         _status = js.get('status_code') if 'status_code' in js else 0
+        if not self.save_headers and not os.path.isfile(js_data.path):
+            _status = 200
+
         _headers = self.headers_detect(
             'load', headers_data=f'{path}.{self.headers_file_postfix}'
         )

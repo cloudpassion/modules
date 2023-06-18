@@ -2,8 +2,12 @@ import re
 
 from log import logger
 
+from ..stuff.find_vars import VarsFinder
 
-class KinozalVarsFinder:
+
+class KinozalVarsFinder(
+    VarsFinder
+):
 
     def kn_find_year(self, splitted_name):
 

@@ -1,8 +1,16 @@
 import os
 import asyncio
 
+from base64 import b64decode
 from typing import Union
 
+try:
+    import ujson as json
+except ImportError:
+    import json
+
+from atiny.reos.dir.create import create_dir
+from config import secrets
 from log import logger, log_stack
 
 from ..tgx.hotpicks import TGxHotPicks, TgxHotPicksItem
@@ -12,7 +20,7 @@ from ..getmov import GetMovies
 from .db import SkipDB
 
 # TODO: rewrite tg
-from otg import tg_send_loop
+from otg import tg_send_loop, tg_send_media
 from atiny.http import MyHttp
 
 from .default import MonMovDefault
@@ -121,6 +129,7 @@ class TgxMonitor(
 
         logger.info(f'{details_page.link}')
 
+        # TODO: rewrite this *sheet
         jpgs = await self.download_images(images=[details_page.image, ])
         tr = 0
         br = False
@@ -144,6 +153,67 @@ class TgxMonitor(
                         False
                     )
                 )
+                break
+            except Exception:
+                log_stack.error('tg stuck')
+                await asyncio.sleep(10)
+
+            if tr >= 10:
+                br = True
+                break
+
+        if br:
+            return
+
+        tr = 0
+        br = False
+        while True:
+            try:
+
+                http = MyHttp()
+
+                magnet = details_page.magnet if hasattr(
+                    details_page, 'magnet'
+                ) else f'magnet:?xt=urn:btih:{details_page.info_hash.lower()}'
+                resp = await http.get(
+                    url=f'http://{secrets.m2t.host}/?'
+                        f'apikey={secrets.m2t.api}&'
+                        f'magnet={magnet}',
+                )
+
+                if resp.error or resp.status != 200:
+                    logger.info(f'check 55')
+                    await asyncio.sleep(10)
+                    continue
+
+                js = json.loads(resp.content.decode('utf8'))
+                status = js.get('status')
+                logger.info(f'{status=}')
+                if status != 'success':
+                    await asyncio.sleep(10)
+                    continue
+
+                # logger.info(f'{js=}')
+                t_data = b64decode(js.get('torrent_data'))
+                # logger.info(f'{t_data=}')
+
+                create_dir('torrents')
+                t_file = f'torrents/{details_page.info_hash}.torrent'
+                with open(t_file, 'wb') as wb:
+                    wb.write(t_data)
+
+                tr += 1
+                torrent = open(t_file, 'rb')
+                tg_send_media(
+                    secrets.m2t.cid, torrent,
+                    f'{details_page.link}\n'
+                    f'https://www.imdb.com/title/{details_page.imdb}/\n'
+                    f'{details_page.name}\n'
+                    f'{details_page.info_hash.lower()}\n\n',
+                    media='document',
+                )
+                torrent.close()
+
                 break
             except Exception:
                 log_stack.error('tg stuck')

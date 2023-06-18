@@ -78,7 +78,7 @@ class TGxHotPicks(
 
         items = []
         for soup_item in soup_items:
-            logger.info(f'{soup_item=}')
+            # logger.info(f'{soup_item=}')
 
             item = TgxHotPicksItem()
 
@@ -92,7 +92,7 @@ class TGxHotPicks(
             image = soup_item.find('img').get('data-src')
 
             splitted_name = name.split('.')
-            logger.info(f'{splitted_name=}')
+            # logger.info(f'{splitted_name=}')
 
             if cat != 3:
                 year = item.tgx_find_year(splitted_name)

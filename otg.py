@@ -359,13 +359,27 @@ def tg_send_media(
     
     try:
         if media == 'photo' or media == 'image':
-            resp.append(bot.send_photo(_cid, _imgl, caption=_caption[0:199],
+            resp.append(
+                bot.send_photo(
+                    _cid, _imgl, caption=_caption[0:199],
                     disable_notification=disable_notification,
                     reply_to_message_id=reply_to_message_id,
-                    reply_markup=reply_markup ))
+                    reply_markup=reply_markup
+                ))
             if _caption:
                 parse_last_message(resp[-1])
-        
+
+        elif media == 'document':
+            resp.append(
+                bot.send_document(
+                    _cid, _imgl, caption=_caption[0:199],
+                    disable_notification=disable_notification,
+                    reply_to_message_id=reply_to_message_id,
+                    reply_markup=reply_markup
+                ))
+            if _caption:
+                parse_last_message(resp[-1])
+
         elif media == 'album':
 
             alb_send = []
