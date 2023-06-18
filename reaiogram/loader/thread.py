@@ -4,8 +4,9 @@ import threading
 from time import sleep
 from aiogram import Bot
 from aiogram import types
-from aiogram import executor
-from aiogram.bot.api import TelegramAPIServer
+from aiogram import enums
+# from aiogram import executor
+from aiogram.client.telegram import TelegramAPIServer
 
 from reaiogram.dispatcher import ThreadDispatcher as Dispatcher
 from reaiogram.storage import MainStorage
@@ -67,7 +68,7 @@ class Monitor:
             token=API_TOKEN,
             proxy=pollbot_proxy.proxy,
             proxy_auth=pollbot_proxy.aiogram_auth,
-            parse_mode=types.ParseMode.HTML,
+            parse_mode=enums.ParseMode.HTML,
             server=TelegramAPIServer.from_base(API_URL)
         )
         self.dispatcher = dp(
@@ -82,10 +83,14 @@ class Monitor:
         register_handlers(self.dispatcher)
 
         if not WEBHOOK:
-            executor.start_polling(
-                self.dispatcher, skip_updates=True,
-                on_startup=self.on_startup, on_shutdown=self.on_shutdown,
-            )
+            asyncio.run(on_startup(dp))
+            asyncio.run(dp.skip_updates())
+            asyncio.run(dp.start_polling())
+            asyncio.run(on_shutdown(dp))
+            # executor.start_polling(
+            #     self.dispatcher, skip_updates=True,
+            #     on_startup=self.on_startup, on_shutdown=self.on_shutdown,
+            # )
         else:
             executor.start_webhook(
                 self.dispatcher,

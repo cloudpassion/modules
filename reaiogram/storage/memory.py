@@ -1,4 +1,4 @@
-from aiogram.contrib.fsm_storage.memory import MemoryStorage as DefaultMemoryStorage
+from aiogram.fsm.storage.memory import MemoryStorage as DefaultMemoryStorage
 
 
 class MemoryStorage(DefaultMemoryStorage): pass

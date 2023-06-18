@@ -1,5 +1,5 @@
 from aiogram import types
-from aiogram.contrib.middlewares.logging import LoggingMiddleware as DefaultLoggingMiddleWare
+from aiogram.dispatcher.middlewares.logging import LoggingMiddleware as DefaultLoggingMiddleWare
 
 from log import flogger
 

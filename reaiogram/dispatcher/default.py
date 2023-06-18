@@ -6,10 +6,10 @@ from typing import Union, Optional
 #     LessonPostgreSqlDatabase
 from ..db import MyDjangoORM
 
-from aiogram.dispatcher import Dispatcher as DefaultDispatcher
+from aiogram import Dispatcher as DefaultDispatcher
 from aiogram import types
-from aiogram.contrib.fsm_storage.memory import BaseStorage
-from aiogram.utils import exceptions
+from aiogram.fsm.storage.memory import BaseStorage
+from aiogram import exceptions
 
 from log import mlog, logger
 from config import settings, secrets
@@ -38,11 +38,19 @@ class Dispatcher(DefaultDispatcher):
             MyDjangoORM, None
         ] = None
 
+        # super().__init__(
+        #     bot, loop=loop, storage=storage,
+        #     run_tasks_by_default=run_tasks_by_default, throttling_rate_limit=throttling_rate_limit,
+        #     no_throttle_error=no_throttle_error,
+        #     filters_factory=filters_factory
+        # )
         super().__init__(
-            bot, loop=loop, storage=storage,
-            run_tasks_by_default=run_tasks_by_default, throttling_rate_limit=throttling_rate_limit,
-            no_throttle_error=no_throttle_error,
-            filters_factory=filters_factory
+            storage=storage,
+            # fsm_strategy: FSMStrategy = FSMStrategy.USER_IN_CHAT,
+            # events_isolation: Optional[BaseEventIsolation] = None,
+            # disable_fsm: bool = False,
+            # name: Optional[str] = None,
+            # **kwargs: Any,
         )
 
     async def get_extra_info(self):
@@ -159,10 +167,11 @@ class Dispatcher(DefaultDispatcher):
         #         f'Hello. This bot use default template.'
         #     )
 
-        @self.errors_handler(exception=exceptions.MessageNotModified)
-        async def message_not_modified_handler(update, error):
-            return True
-            # errors_handler must return True if error was handled correctly
+        return
+        # @self.errors_handler(exception=exceptions.MessageNotModified)
+        # async def message_not_modified_handler(update, error):
+        #     return True
+        #     # errors_handler must return True if error was handled correctly
 
     async def aextra(self):
 

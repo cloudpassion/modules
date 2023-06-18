@@ -1,17 +1,17 @@
 from .default import Dispatcher
-from ..handlers import (
-    UsersHandler,
-    ChannelsHandler,
-    AdminsHandler,
-    CreatorHandler
-)
+# from ..handlers import (
+#     UsersHandler,
+#     ChannelsHandler,
+#     AdminsHandler,
+#     CreatorHandler
+# )
 
 
 class FullDispatcher(
-    CreatorHandler,
-    AdminsHandler,
-    UsersHandler,
-    ChannelsHandler,
+    # CreatorHandler,
+    # AdminsHandler,
+    # UsersHandler,
+    # ChannelsHandler,
     Dispatcher,
 ):
     pass

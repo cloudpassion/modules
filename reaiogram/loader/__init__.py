@@ -42,8 +42,9 @@ def register_dialogs(dp):
 
 
 def register_filters(dp):
-    from reaiogram.filters import register_filters
-    register_filters(dp)
+    return
+    # from reaiogram.filters import register_filters
+    # register_filters(dp)
 
 
 def register_handlers(dp):

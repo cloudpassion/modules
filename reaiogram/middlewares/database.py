@@ -1,8 +1,10 @@
 from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import types
-from aiogram.utils import exceptions
-from aiogram.dispatcher.middlewares import BaseMiddleware
+from aiogram import exceptions
+from aiogram import BaseMiddleware
+
+from aiogram.types import Message
 
 from log import logger, log_stack
 from config import secrets, settings
@@ -25,22 +27,29 @@ class DatabaseMiddleware(
 
         return {}
 
-    async def on_post_process_message(
+    async def __call__(
             self,
-            message: types.Message, data: dict,
-            *args
-    ):
+            handler: Callable[[Message, Dict[str, Any]], Awaitable[Any]],
+            event: Message,
+            data: Dict[str, Any]
+    ) -> Any:
+    # async def on_post_process_message(
+    #         self,
+    #         message: types.Message, data: dict,
+    #         *args
+    # ):
         logger.info(f'{data=}')
-        await self._message_to_database(message)
+        await self._message_to_database(event)
 
-    async def on_post_process_edited_message(
-            self,
-            message: types.Message, data: dict,
-            *args
-    ):
-        logger.info(f'{data=}')
-        await self._message_to_database(message)
+    # async def on_post_process_edited_message(
+    #         self,
+    #         message: types.Message, data: dict,
+    #         *args
+    # ):
+    #     logger.info(f'{data=}')
+    #     await self._message_to_database(message)
 
 
 def register_database_middleware(dp):
+    logger.info(f'{dp=}, {dir(dp)}')
     dp.middleware.setup(DatabaseMiddleware())

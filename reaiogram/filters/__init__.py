@@ -4,5 +4,6 @@ from .task5 import NotRegisteredFilter
 
 
 def register_filters(dp: Dispatcher):
+    return
     dp.filters_factory.bind(CreatorFilter)
     dp.filters_factory.bind(NotRegisteredFilter)
