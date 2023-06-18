@@ -117,20 +117,20 @@ class KinozalMonitor:
     ):
 
         if item.name in self.skip_names:
-            logger.info(f'{item.name=} already parsed')
+            # logger.info(f'{item.name=} already parsed')
             return
 
         if '/ РУ' in item.name:
-            logger.info(f'skip {item.name=} RU')
+            # logger.info(f'skip {item.name=} RU')
             return
 
         if '/ TS' in item.name:
-            logger.info(f'skip translate {item.name=}')
+            # logger.info(f'skip translate {item.name=}')
             return
 
         if years is not None:
             if item.year not in years:
-                logger.info(f'{item.year=} not in {years=}')
+                # logger.info(f'{item.year=} not in {years=}')
                 return
 
         skip = True
