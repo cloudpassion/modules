@@ -25,36 +25,21 @@ class KinoriumPremierSite(
     #https://en.kinorium.com/movies/cinema/
 
     async def kinorium_get_movies_upcoming(
-            self, year, max_page=None, skip_write=False
+            self, year, max_page=None, skip_write=False,
+            tp=['premier', 'online', 'home'],
     ):
         items = []
 
-        theatre_items = await self.kinorium_movies_premier(
-            year=year,
-            type='premier',
-            max_page=max_page,
-            skip_parse=True,
-        )
-        items.extend(theatre_items)
+        for where in tp:
+            _items = await self.kinorium_movies_premier(
+                year=year,
+                type=where,
+                max_page=max_page,
+                skip_parse=True,
+            )
 
-        logger.info(f'{len(items)}')
-        online_items = await self.kinorium_movies_premier(
-            year=year,
-            type='online',
-            max_page=max_page,
-            skip_parse=True,
-        )
-        items.extend(online_items)
-        logger.info(f'{len(items)}')
-
-        home_items = await self.kinorium_movies_premier(
-            year=year,
-            type='home',
-            max_page=max_page,
-            skip_parse=True,
-        )
-        items.extend(home_items)
-        logger.info(f'{len(items)}')
+            logger.info(f'{where=}, {len(items)}')
+            items.extend(_items)
 
         if not items:
             return
