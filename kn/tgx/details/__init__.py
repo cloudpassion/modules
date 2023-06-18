@@ -1,1 +1,1 @@
-from .page import DetailsPage
+from .page import TgxDetailsPage

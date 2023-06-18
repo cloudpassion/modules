@@ -6,7 +6,7 @@ from typing import Union
 from log import logger, log_stack
 
 from ..tgx.hotpicks import TGxHotPicks, TgxHotPicksItem
-from ..tgx.details import DetailsPage
+from ..tgx.details import TgxDetailsPage
 
 from ..getmov import GetMovies
 from .db import SkipDB
@@ -84,7 +84,7 @@ class TgxMonitor(
         skip = True
 
         if titles is not None:
-            if item.title in titles:
+            if item.title and item.title in titles:
                 logger.info(f'{item.title=} in titles')
                 skip = False
 
@@ -106,7 +106,7 @@ class TgxMonitor(
                         TgxHotPicksItem,
                 )
         ):
-            details_page = DetailsPage(id=item.id, pre_item=item)
+            details_page = TgxDetailsPage(id=item.id, pre_item=item)
             await details_page.get_details()
         else:
             details_page = item

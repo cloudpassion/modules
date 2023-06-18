@@ -13,7 +13,7 @@ from ..find_vars import TgxVarsFinder
 from ..http import Http
 
 
-class DetailsPage(
+class TgxDetailsPage(
     Http,
     TgxVarsFinder,
 ):
@@ -35,7 +35,7 @@ class DetailsPage(
     id: int
     link: str
     name: str
-    title: str
+    title: str = None
     year: int
     info_hash: str
     imdb: str = None

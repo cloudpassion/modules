@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from atiny.http import MyHttp
 from atiny.http.utils import MyHttpUtils
 
-from ..tgx.details import DetailsPage
+from ..tgx.details import TgxDetailsPage
 
 from .default import TgxDefault
 from .find_vars import TgxVarsFinder
@@ -29,7 +29,7 @@ class TgxHotPicksItem(TgxVarsFinder):
     name: str
     image: str
 
-    title: str
+    title: str = None
     year: int
 
 
@@ -98,9 +98,7 @@ class TGxHotPicks(
                 year = item.tgx_find_year(splitted_name)
                 year_index = splitted_name.index(f'{year}')
 
-            title = ' '.join(splitted_name[0:year_index])
-
-            logger.info(f'{year=}')
+                title = ' '.join(splitted_name[0:year_index])
 
             item.set_locals(locals())
 
