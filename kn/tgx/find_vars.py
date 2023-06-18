@@ -23,19 +23,25 @@ class TgxVarsFinder:
 
     def tgx_find_year(self, splitted_name):
 
-        def split_dash(tt):
-            return tt.split('-')[1]
+        def split_dot(tt):
+            return tt.split('.')
 
-        def split_brackets(tt):
-            return tt.split('(')[1].split(')')[0]
+        def no_split(tt):
+            return tt
 
-        def split_comma(tt):
-            return re.findall('\d+', tt.split(',')[-1])[0]
+        # def split_dash(tt):
+        #     return tt.split('-')[1]
+        #
+        # def split_brackets(tt):
+        #     return tt.split('(')[1].split(')')[0]
+        #
+        # def split_comma(tt):
+        #     return re.findall('\d+', tt.split(',')[-1])[0]
 
         year = None
         for yf in (
-                split_dash, split_brackets,
-                split_comma
+            no_split,
+            split_dot,
         ):
             for tt in splitted_name[1:]:
                 try:
@@ -49,6 +55,7 @@ class TgxVarsFinder:
                     continue
 
         if not year:
+            logger.info(f'{splitted_name=}')
             raise ValueError
 
         return year

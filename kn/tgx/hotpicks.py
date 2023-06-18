@@ -94,8 +94,9 @@ class TGxHotPicks(
             splitted_name = name.split('.')
             logger.info(f'{splitted_name=}')
 
-            year = item.tgx_find_year(splitted_name)
-            year_index = splitted_name.index(f'{year}')
+            if cat != 3:
+                year = item.tgx_find_year(splitted_name)
+                year_index = splitted_name.index(f'{year}')
 
             title = ' '.join(splitted_name[0:year_index])
 

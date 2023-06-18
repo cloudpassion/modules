@@ -208,7 +208,6 @@ class BrowsePage(
             name = soup_item.text
             splitted_name = name.split('/')
             # logger.info(f'{name=}')
-            logger.info(f'{splitted_name=}')
             title = splitted_name[0][0:-1]
             ru_title = title
             en_title = splitted_name[1][1:][0:-1]
