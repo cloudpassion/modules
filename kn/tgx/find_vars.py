@@ -11,7 +11,7 @@ class TgxVarsFinder:
 
         if not hasattr(_locals, 'items'):
             throw = {
-                k: getattr(_locals, k) for k in _locals.keys
+                k: getattr(_locals, k) for k in _locals.keys if hasattr(_locals, k)
             }
         else:
             throw = _locals
