@@ -17,7 +17,7 @@ async def save_update(
 ) -> Any:
 
     data = {}
-    logger.info(f'-----------------save_update-------------------------
+    logger.info(f'-----------------save_update-------------------------')
     me = await bot.me()
     data.update(await bot.dp.orm.database_bot(bot=me))
 
