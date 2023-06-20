@@ -1,17 +1,9 @@
-from .default import Dispatcher
-# from ..handlers import (
-#     UsersHandler,
-#     ChannelsHandler,
-#     AdminsHandler,
-#     CreatorHandler
-# )
+from .listen import ReviewUpdateDispatcher
+from reaiogram.handlers.dispatcher.orm import OrmDispatcher
 
 
 class FullDispatcher(
-    # CreatorHandler,
-    # AdminsHandler,
-    # UsersHandler,
-    # ChannelsHandler,
-    Dispatcher,
+    OrmDispatcher,
+    ReviewUpdateDispatcher,
 ):
     pass

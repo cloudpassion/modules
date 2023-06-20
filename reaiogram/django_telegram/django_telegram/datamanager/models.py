@@ -2,6 +2,8 @@ from config import settings, secrets
 
 from .default import ExtraBasedModel
 
+from .tg.bot import *
+from .tg.update import *
 from .tg.chat import *
 from .tg.user import *
 from .tg.message import *
@@ -11,6 +13,10 @@ from .tg.discuss import *
 
 __all__ = []
 
+from .tg import bot
+__all__.extend(bot.__all__)
+from .tg import update
+__all__.extend(update.__all__)
 from .tg import chat
 __all__.extend(chat.__all__)
 from .tg import user

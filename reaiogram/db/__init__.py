@@ -1,12 +1,12 @@
-from ..db.schemas.django import (
+from .django import (
     MyDjangoORM,
 )
 
-from config import settings, secrets
+from config import settings
 
 __db__ = {
     'None': None,
-    'MyDjangoORM': MyDjangoORM(),
+    'MyDjangoORM': MyDjangoORM,
 }
 
-SqlDatabase = __db__[settings.database.database]
+DbClass = __db__[getattr(settings.database, 'class')]

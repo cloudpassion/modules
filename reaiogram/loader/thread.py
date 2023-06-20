@@ -1,53 +1,37 @@
+import time
 import asyncio
 import threading
 
-from time import sleep
-from aiogram import Bot
-from aiogram import types
-from aiogram import enums
-# from aiogram import executor
-from aiogram.client.telegram import TelegramAPIServer
+from collections import deque
 
-from reaiogram.dispatcher import ThreadDispatcher as Dispatcher
-from reaiogram.storage import MainStorage
-from log import mlog
-from . import API_TOKEN, pollbot_proxy, sendbot_proxy,\
-    register_middlewares, register_dialogs, register_filters, register_handlers, \
-    register_webhook, WEBHOOK, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT, \
-    API_URL
+from log import logger
+
+from .django_load import setup_django
 
 
 class Monitor:
 
-    def __init__(
-            self, polling_bot, dispatcher,
-            storage,
-            on_startup, on_shutdown,
-    ):
-        self._polling_bot = polling_bot
-        self._dispatcher = dispatcher
-        self.storage = storage
-        self.on_startup = on_startup
-        self.on_shutdown = on_shutdown
+    tg_loop: asyncio.AbstractEventLoop
+    bt_loop: asyncio.AbstractEventLoop
+    tg_thread: threading.Thread
 
-        self.dispatcher = None
-        self.polling_bot = None
-        self.dp_loop = None
-        self.dp_thread = None
+    # dp: Dispatcher
+    # poll_bots: List[Bot, ]
+    # poll_bot: Bot
+
+    def __init__(self):
+        self.timeline = deque()
 
     def run_threads(self):
 
-        # back to dp loop
-
-        self.dp_loop = asyncio.get_event_loop()
-
+        tg_loop = asyncio.new_event_loop()
+        self.tg_loop = tg_loop
         _dp_thread = threading.Thread(
-            target=self.dispatcher_forever,
-            args=(self._dispatcher, )
+            target=self.poll_forever,
+            args=(self.tg_loop, )
         )
+        self.tg_thread = _dp_thread
         _dp_thread.start()
-
-        self.dp_thread = _dp_thread
 
         # sql loop
 
@@ -60,57 +44,48 @@ class Monitor:
         # dispacher
         #
 
-    def dispatcher_forever(self, dp):
-        asyncio.set_event_loop(self.dp_loop)
-        mlog.info(f'dp_forever: {dp}')
+    def poll_forever(self, tg_loop):
+        logger.info(f'{tg_loop=}')
+        asyncio.set_event_loop(tg_loop)
+        asyncio.run(self.thread_loader())
 
-        self.polling_bot = self._polling_bot(
-            token=API_TOKEN,
-            proxy=pollbot_proxy.proxy,
-            proxy_auth=pollbot_proxy.aiogram_auth,
-            parse_mode=enums.ParseMode.HTML,
-            server=TelegramAPIServer.from_base(API_URL)
-        )
-        self.dispatcher = dp(
-            self.polling_bot,
-            storage=self.storage,
-        )
+    async def thread_loader(self):
 
-        register_webhook(self.polling_bot)
-        register_middlewares(self.dispatcher)
-        register_dialogs(self.dispatcher)
-        register_filters(self.dispatcher)
-        register_handlers(self.dispatcher)
+        from .default import default_loader, Bot, Dispatcher
+        bots, dp = await default_loader()
+
+        self.poll_bots = bots
+        self.poll_bot = bots[0]
+        self.dp = dp
+
+        from .setup import (
+            WEBHOOK, WEBHOOK_SSL, WEBHOOK_URL
+        )
 
         if not WEBHOOK:
-            asyncio.run(on_startup(dp))
-            asyncio.run(dp.skip_updates())
-            asyncio.run(dp.start_polling())
-            asyncio.run(on_shutdown(dp))
-            # executor.start_polling(
-            #     self.dispatcher, skip_updates=True,
-            #     on_startup=self.on_startup, on_shutdown=self.on_shutdown,
-            # )
-        else:
-            executor.start_webhook(
-                self.dispatcher,
-                webhook_path=WEBHOOK_PATH, check_ip=True,
-                skip_updates=True,
-                on_startup=self.on_startup, on_shutdown=self.on_shutdown,
+            await dp.start_polling(
+                *bots
             )
+        else:
+            for bot in bots:
+                await bot.set_webhook(
+                    url=WEBHOOK_URL,
+                    certificate=WEBHOOK_SSL,
+                )
+            await dp.start_polling(
+                *bots
+            )
+            logger.info(f'\n\n\n\n\n\nEXIT\n\n\n\n\n')
 
 
-def thread_loader(on_startup, on_shutdown):
+def run_thread():
 
-    polling_bot = Bot
+    setup_django()
 
-    storage = MainStorage
-
-    mon = Monitor(
-        polling_bot=polling_bot,
-        dispatcher=Dispatcher,
-        storage=storage,
-        on_startup=on_startup, on_shutdown=on_shutdown,
-    )
-
+    mon = Monitor()
     mon.run_threads()
+
+    while True:
+
+        time.sleep(1)
+        logger.info(f'thread sleep')
