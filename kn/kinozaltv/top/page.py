@@ -160,7 +160,7 @@ class TopPage(
         if resp.status != 200:
             return
 
-        soup = BeautifulSoup(resp.content.decode('p1251'), 'lxml')
+        soup = BeautifulSoup(resp.content.decode('cp1251'), 'lxml')
 
         paginator = soup.find('div', {'class': 'paginator'})
         if paginator:
