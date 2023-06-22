@@ -4,9 +4,9 @@ from .django import (
 
 from config import settings
 
-__db__ = {
+__orm__ = {
     'None': None,
     'MyDjangoORM': MyDjangoORM,
 }
 
-DbClass = __db__[getattr(settings.database, 'class')]
+DbClass = __orm__[getattr(settings.database, 'class')]

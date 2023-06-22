@@ -9,8 +9,11 @@ def register_observers(dp):
     register_simple_event_observer(dp)
     register_simple_telegram_event_observer(dp)
 
-    register_log_update_telegram_event_observer(dp)
-
     register_save_update_telegram_event_observer(dp)
+
+
+
+    # always last!
+    register_log_update_telegram_event_observer(dp)
 
 

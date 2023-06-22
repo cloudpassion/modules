@@ -13,12 +13,12 @@ class DjangoORMTgDocument(
     DjangoORMTgFile
 ):
 
-    async def select_tg_document_file_unique_id(
-            self, file_unique_id: str,
+    async def select_tg_document_file_id(
+            self, file_id: str,
     ):
 
-        return await self.select_tg_file_unique_id(
-            file_unique_id, db_class=DjangoTgDocument
+        return await self.select_tg_file_id(
+            file_id, db_class=DjangoTgDocument
         )
 
     async def update_tg_document(

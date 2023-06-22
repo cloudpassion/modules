@@ -20,6 +20,7 @@ class DjangoORMTgUpdate(
             self, bot: MergedTelegramBot
     ):
 
+        logger.info(f'start_get_last_update')
         update = DjangoTgUpdate()
         self.set_select(
             data=update,
@@ -31,6 +32,7 @@ class DjangoORMTgUpdate(
         last_update = await self.select_max(
             data=update, db_class=DjangoTgUpdate
         )
+        logger.info(f'end_get_last_update')
 
         return last_update
 
@@ -48,7 +50,6 @@ class DjangoORMTgUpdate(
             },
             set_keys=True,
         )
-        logger.info(f'here55')
         return await self.select_one(
             data=update, db_class=DjangoTgUpdate
         )

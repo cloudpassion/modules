@@ -10,7 +10,14 @@ class MergedAiogramBot(
     unmerged: AiogramUser
 
     async def _merge_aiogram_bot(self):
-        await self._default_merge_telegram()
+        #
+        # if not self.unmerged:
+        #     return
+
+        await self._default_merge_telegram('init_bot')
+
+        return self
+        # await self._convert_to_orm()
 
     async def to_orm(self):
         return await self.db.update_tg_bot(

@@ -16,6 +16,8 @@
 # from .pyrogram.types import PyrogramMessage
 # from .pyrogram.message import MergedPyrogramMessage
 
+from log import logger
+
 from .merged.aiogram.types import AiogramMessage
 from .merged.aiogram.message import MergedAiogramMessage
 
@@ -33,12 +35,17 @@ class MergedTelegramMessage(
     MergedAiogramMessage,
 ):
 
-    def __init__(self, db, message=None):
+    def __init__(self, db, message):
         self.unmerged = message
         self.db_class = TgMessage
         self.db = db
 
     async def merge_message(self):
+
+        if self.unmerged is None:
+            # logger.info(f'no message {hex(id(self))=}')
+            return None
+
         # if isinstance(self.init_message, (
         #     PyrogramMessage,
         # )):
@@ -47,4 +54,7 @@ class MergedTelegramMessage(
         if isinstance(self.unmerged, (
             AiogramMessage,
         )):
-            return await self._merge_aiogram_message()
+            await self._merge_aiogram_message()
+
+        await self._convert_to_orm()
+        return self

@@ -17,39 +17,64 @@ class MergedAiogramMessage(
     unmerged: AiogramMessage
 
     async def _merge_aiogram_message(self):
+        #
+        # if not self.unmerged:
+        #     return
 
-        await self._default_merge_telegram()
+        await self._default_merge_telegram('m_a_message')
 
         # message_id
-        try:
-            self.id = self.unmerged.message_id
-        except AttributeError:
-            return
+        self.id = self.unmerged.message_id
+
+        self.thread_id = self.unmerged.message_thread_id
 
         # from
-        self.from_user = MergedTelegramUser(
+        from_user = MergedTelegramUser(
             db=self.db, user=self.unmerged.from_user
         )
-        await self.from_user._merge_aiogram_user()
+        # logger.info(f'msg:from_user: {from_user=}')
+        self.from_user = await from_user.merge_user()
 
         # chat
-        self.chat = MergedTelegramChat(
+        chat = MergedTelegramChat(
             db=self.db, chat=self.unmerged.chat
         )
-        await self.chat._merge_aiogram_chat()
+        # logger.info(f'msg:chat: {chat=}')
+        self.chat = await chat.merge_chat()
+        # logger.info(f'msg:self.chat: {self.chat=}')
+        # logger.info(f'{self.unmerged.chat=}')
 
-        self.sender_chat = MergedTelegramChat(
+        # sender_chat
+        sender_chat = MergedTelegramChat(
             db=self.db, chat=self.unmerged.sender_chat
         )
-        await self.sender_chat._merge_aiogram_chat()
+        # logger.info(f'msg:sender_chat: {sender_chat=}')
+        self.sender_chat = await sender_chat.merge_chat()
 
-        # document
-        self.document = MergedTelegramDocument(
-            db=self.db, document=self.unmerged.document
+        # forward_from
+        forward_from = MergedTelegramUser(
+            db=self.db, user=self.unmerged.forward_from
         )
-        await self.document._merge_aiogram_document(
-            chat=self.chat
+        # logger.info(f'msg:forward_from: {forward_from=}')
+        self.forward_from = await forward_from.merge_user()
+
+        # forward_from_chat
+        forward_from_chat = MergedTelegramChat(
+            db=self.db, chat=self.unmerged.forward_from_chat
         )
+        # logger.info(f'msg:forward_from_chat: {forward_from_chat=}')
+        self.forward_from_chat = await forward_from_chat.merge_chat()
+
+        # files
+        # document_chat = self.unmerged.chat or self.unmerged.sender_chat
+        document = MergedTelegramDocument(
+            db=self.db, document=self.unmerged.document,
+            merged_chat=chat
+        #document_chat
+        )
+        self.document = await document.merge_document()
+
+        return self
 
     async def to_orm(self):
 
@@ -66,5 +91,6 @@ class MergedAiogramMessage(
             chat=self.chat,
             from_user=self.from_user,
             sender_chat=self.sender_chat,
+            thread_id=self.thread_id,
             id=self.id
         )

@@ -22,24 +22,8 @@ async def run_on_startup(
     await dispatcher.init_database(DbClass)
     await dispatcher.aextra()
 
-    # t = 0
-    # while True:
-    #     t += 1
-    #     await asyncio.sleep(1)
-    #     if t > 20:
-    #         break
-
     for bt in bots:
         logger.info(f'{bt=}')
 
         asyncio.create_task(get_updates(dispatcher, bt))
-
-
-        # await _bot.get_updates()t
-    # for _bot in bots:
-    #
-    #     me = await bot.me()
-    #     logger.info(f'{me=}')
-    #     await dispatcher.orm.database_bot(
-    #         bot=me
-    #     )
+        asyncio.create_task(bt.me())

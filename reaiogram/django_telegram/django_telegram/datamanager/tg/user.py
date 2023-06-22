@@ -30,7 +30,7 @@ class AbstractTgUser(ExtraBasedModel):
 
     num = models.BigAutoField(primary_key=True)
 
-    is_bot = models.BooleanField(null=False, blank=True)
+    is_bot = models.BooleanField(null=True, blank=True)
     first_name = models.CharField(max_length=128, null=False)
     last_name = models.CharField(max_length=128, null=True, blank=True)
     username = models.CharField(max_length=128, null=True, blank=True)

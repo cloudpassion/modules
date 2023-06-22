@@ -117,12 +117,14 @@ class DefaultDjangoTgORM:
 
         if set_keys:
             for key, value in select_kwargs.items():
+                # logger.info(f's: {key=}, {value}')
                 setattr(data, key, value)
 
         # logger.info(f'{data=}, {select_kwargs=}')
         setattr(data, 'select', select_kwargs)
 
     def get_default_select(self, data):
+        # logger.info(f'{data=}, {dir(data)}')
         select_kwargs = {}
         for key in data.select_keys:
             select_kwargs[key] = getattr(data, key)
@@ -179,6 +181,53 @@ class DefaultDjangoTgORM:
         except:
             log_stack.error(f'extra: {data=}, {db_class=}')
 
+    def gen_db_kwargs(
+            self, data, db_class: Union[
+                DjangoTgMessage
+            ], key_prefix=''
+    ):
+
+        # for key in data.db_keys:
+        #     try:
+        #         logger.info(f'{key=}, {getattr(data, f"db_{key}")}')
+        #     except AttributeError:
+        #         pass
+
+        # db_kwargs = {
+        #     key: getattr(
+        #         data, f'db_{key}'
+        #     ) for key in data.db_keys if key == data.db_keys[0] or (
+        #             hasattr(
+        #                 data, f'db_{key}'
+        #             ) and hasattr(
+        #                 db_class, key
+        #             )
+        #     )
+        # }
+
+        # logger.info(f'{data=}, {dir(data)=}')
+        db_kwargs = {
+            key: getattr(
+                data, f'{key_prefix}{key}'
+            ) for key in data.db_keys if key == data.db_keys[0] or (
+                    hasattr(
+                        data, f'{key_prefix}{key}'
+                    ) and hasattr(
+                        db_class, key
+                    )
+                )
+        }
+
+        # db_kwargs = {
+        #     key: getattr(
+        #         data, f'db_{key}'
+        #     ) for key in data.db_keys if hasattr(
+        #         data, f'db_{key}'
+        #     )
+        # }
+        # logger.info(f'{db_kwargs}')
+        return db_kwargs
+
     async def add_one(
             self,
             data,
@@ -197,23 +246,15 @@ class DefaultDjangoTgORM:
         if not skip_select:
             db = await self.select_one(data=data, db_class=db_class)
 
-        # try:
-        #     db = await sync_to_async(db_class.objects.filter(id=data.id).first)()
-        # except Exception:
-        #     db = None
-        # logger.info(f'here45 {db}')
-
         if db:
             return db
 
         # db_kwargs = {
-        #     key: getattr(data, key) for key in data.db_keys if hasattr(data, key)
+        #     key: getattr(
+        #         data, f'db_{key}'
+        #     ) for key in data.db_keys if hasattr(data, f'db_{key}')
         # }
-        db_kwargs = {
-            key: getattr(
-                data, f'db_{key}'
-            ) for key in data.db_keys if hasattr(data, f'db_{key}')
-        }
+        db_kwargs = self.gen_db_kwargs(data, db_class, key_prefix='_to_db_')
         db_kwargs['hash'] = self.calc_hash(
             db_class=db_class, db_kwargs=db_kwargs.copy(),
         )
@@ -236,18 +277,8 @@ class DefaultDjangoTgORM:
 
         db = await self.select_one(data=data, db_class=db_class)
 
-        # try:
-        #     db = await sync_to_async(db_class.objects.filter(id=data.id).first)()
-        # except Exception:
-        #     db = None
-
         if not db:
 
-            # db_kwargs = {
-            #     key: getattr(data, key) for key in data.db_keys
-            # }
-            #
-            # return db_class(**db_kwargs).save()
             return await self.add_one(
                 data=data, db_class=db_class, skip_select=True,
             )
@@ -260,7 +291,7 @@ class DefaultDjangoTgORM:
                 db_value = None
 
             try:
-                new_value = getattr(data, f'db_{key}')
+                new_value = getattr(data, f'_to_db_{key}')
             except AttributeError:
                 new_value = None
 
@@ -271,11 +302,12 @@ class DefaultDjangoTgORM:
 
         if updated:
 
-            db_kwargs = {
-                key: getattr(
-                    db, key
-                ) for key in data.db_keys if hasattr(data, key)
-            }
+            db_kwargs = self.gen_db_kwargs(data, db_class)
+            # db_kwargs = {
+            #     key: getattr(
+            #         db, key
+            #     ) for key in data.db_keys if hasattr(data, key)
+            # }
 
             setattr(
                 db, 'hash',

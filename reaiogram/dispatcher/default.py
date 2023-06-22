@@ -49,12 +49,13 @@ class ExtraDispatcher(DefaultDispatcher):
 
     # this
     async def _append_handler_zzzzzzzzzz(self):
+        pass
         # handler for checking all other
         # dispatcher handlers executed
         # TODO: rewrite to class as writed in DOCS
-        @self.message()
-        async def last_handler(*args, **kwargs):
-            logger.info(f'last_handler')
+        # @self.message()
+        # async def last_handler(*args, **kwargs):
+        #     logger.info(f'last_handler')
 
     async def aextra(self):
 

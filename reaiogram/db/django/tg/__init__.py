@@ -16,6 +16,13 @@ from ....types.tg.bot import MergedTelegramBot
 from ...exceptions import DbBreakException
 
 
+MERGED_CL = {
+    'message': MergedTelegramMessage,
+    'bot': MergedTelegramBot,
+    'update': MergedTelegramUpdate,
+}
+
+
 class MyDjangoTgORM(
 
     DjangoORMTgBot,
@@ -27,76 +34,56 @@ class MyDjangoTgORM(
 
     DjangoORMTgFiles,
 ):
+    async def bot_to_orm(self, bot):
+        return await self.data_to_orm(bot=bot)
 
-    async def database_default(
+    async def update_to_orm(self, update, merged_bot, **kwargs):
+        return await self.data_to_orm(update=update, merged_bot=merged_bot, **kwargs)
+
+    async def message_to_orm(self, message, **kwargs):
+        return await self.data_to_orm(message=message, **kwargs)
+
+    async def data_to_orm(
             self,
-            key,
-            data,
             **kwargs
     ):
         try:
-            if key == 'bot':
-                return await self._database_default(
-                    value=data, merge_class=MergedTelegramBot, merge_func_key=key
-                )
-            if key == 'update':
-                return await self._database_default(
-                    value=data,
-                    merge_class=MergedTelegramUpdate, merge_func_key=key,
-                    **kwargs,
-                )
-            if key == 'message':
-                return await self._database_default(
-                    value=data, merge_class=MergedTelegramMessage, merge_func_key=key
-                )
+            return await self._data_to_orm(
+                **kwargs,
+            )
         except DbBreakException:
             return {}
         except Exception:
             quit()
             return 'stack'
 
-    async def database_bot(
+    async def _data_to_orm(
             self,
-            bot,
-    ):
-        return await self.database_default('bot', bot)
-
-    async def database_update(
-            self,
-            update,
-            merged_bot,
-    ):
-        return await self.database_default('update', update, merged_bot=merged_bot)
-
-    async def database_message(
-            self,
-            message,
-    ):
-        return await self.database_default('message', message)
-
-    async def _database_default(
-            self,
-            value,
-            merge_class,
-            merge_func_key,
             **kwargs,
     ):
-        if not value:
-            return f'no_data {merge_class}'
+        key = list(kwargs)[0]
+
+        if not key:
+            return {}
 
         data = {}
+        merge_class = MERGED_CL[key]
         merge_kwargs = {
-            merge_func_key: value,
             **kwargs,
         }
 
+        # logger.info(f'{key=}, {merge_class=}')
+
         # merge message from pyrogram and aiogram to one format
-        new_data = merge_class(self, **merge_kwargs)
-        merge_func = getattr(new_data, f'merge_{merge_func_key}')
+        new_data = merge_class(db=self, **merge_kwargs)
+
+        merge_func = getattr(new_data, f'merge_{key}')
+        # logger.info(f'before merge {new_data=}')
         await merge_func()
+        # logger.info(f'after merge {new_data=}')
+        # convert_func = getattr(new_data, f'_convert_to_orm')
+        # await new_data._convert_to_orm('new_database')
+        # logger.info(f'after orm')
 
-        data[f'merged_{merge_func_key}'] = new_data
-
-        await new_data._convert_to_orm()
-
+        data[f'merged_{key}'] = new_data
         return data

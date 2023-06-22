@@ -25,9 +25,28 @@ class DjangoORMTgMessage(
             chat: MergedTelegramChat,
             from_user: MergedTelegramUser,
             sender_chat: MergedTelegramChat,
+            thread_id: int,
+            id: int,
     ):
-
         message = DjangoTgMessage()
+
+        chat = await self.select_tg_chat_id(
+            id=chat.id
+        )
+
+        try:
+            from_user = await self.select_tg_user_id(
+                id=from_user.id
+            )
+        except AttributeError:
+            from_user = None
+
+        try:
+            sender_chat = await self.select_tg_chat_id(
+                id=sender_chat.id
+            )
+        except AttributeError:
+            sender_chat = None
 
         self.set_select(
             data=message,
@@ -35,11 +54,11 @@ class DjangoORMTgMessage(
                 'chat': chat,
                 'from_user': from_user,
                 'sender_chat': sender_chat,
+                'thread_id': thread_id,
                 'id': id,
             },
             set_keys=True,
         )
-        logger.info(f'here32')
         return await self.select_one(
             data=message, db_class=DjangoTgMessage
         )
@@ -83,6 +102,7 @@ class DjangoORMTgMessage(
                 'chat': chat,
                 'from_user': from_user,
                 'sender_chat': sender_chat,
+                'thread_id': message.thread_id,
                 'id': message.id,
             }
         )

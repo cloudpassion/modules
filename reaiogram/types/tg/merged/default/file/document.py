@@ -14,3 +14,4 @@ class AbstractMergedDocument(
     select_keys = DOCUMENT_SELECT_KEYS
 
     file_unique_id: str
+    file_id: str

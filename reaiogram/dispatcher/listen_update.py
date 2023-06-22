@@ -20,9 +20,10 @@ class ReviewUpdateDispatcher(ExtraDispatcher):
     # if delete return all registered callable function
     # via dispatcher.update.register handling
     #
-    # if more that one, need raise SkipHandler() at end
+    # if more than one, need raise SkipHandler() at end
     # for handling next
     async def _listen_update(self, update: Update, **kwargs: Any) -> Any:
+        # logger.info(f'{kwargs=}')
         await super()._listen_update(update, **kwargs)
         logger.info(f'skip_handler_dispatcher')
         raise SkipHandler()

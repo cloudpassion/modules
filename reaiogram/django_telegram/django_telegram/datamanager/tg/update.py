@@ -1,9 +1,10 @@
 from ..default import ExtraBasedModel, models
-
+from .bot import TgBot
+from .message import TgMessage
 
 UPDATE_KEYS = (
-    'bot',
     'id',
+    'bot',
     'message',
     'edited_message',
     'channel_post',
@@ -35,32 +36,32 @@ class AbstractTgUpdate(ExtraBasedModel):
     num = models.BigAutoField(primary_key=True)
 
     bot = models.ForeignKey(
-        'TgBot',
+        TgBot,
         on_delete=models.DO_NOTHING,
         null=False,
     )
 
     message = models.ForeignKey(
-        'TgMessage',
+        TgMessage,
         on_delete=models.DO_NOTHING,
         related_name='update_message',
         null=True, blank=True,
     )
 
     edited_message = models.ForeignKey(
-        'TgMessage',
+        TgMessage,
         on_delete=models.DO_NOTHING,
         related_name='update_edited_message',
         null=True, blank=True,
     )
     channel_post = models.ForeignKey(
-        'TgMessage',
+        TgMessage,
         on_delete=models.DO_NOTHING,
         related_name='update_channel_post',
         null=True, blank=True,
     )
     edited_channel_post = models.ForeignKey(
-        'TgMessage',
+        TgMessage,
         on_delete=models.DO_NOTHING,
         related_name='update_edited_channel_post',
         null=True, blank=True,

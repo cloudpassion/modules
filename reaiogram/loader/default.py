@@ -18,7 +18,8 @@ from ..utils.help.router import RouterHelp
 
 from .register import (
     register_observers,
-    register_middlewares
+    register_middlewares,
+    register_routers,
 )
 
 from .setup import (
@@ -64,15 +65,6 @@ async def default_loader():
     for bot in bots:
         setattr(bot, 'dp', dp)
 
-    router = Router(name='main')
-    dp.include_router(
-        router=router,
-    )
-    # dp.set_extra(
-    #     bots=bots,
-    #     router=router,
-    # )
-
     # on_event
     dp.startup.register(run_on_startup)
     dp.shutdown.register(run_on_shutdown)
@@ -80,6 +72,8 @@ async def default_loader():
     # register handlers
     register_middlewares(dp)
     register_observers(dp)
+
+    register_routers(dp)
 
     RouterHelp().list_routers(dp)
 

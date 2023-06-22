@@ -15,10 +15,11 @@ class OrmMessageMiddleware(BaseMiddleware):
             event: Message,
             data: Dict[str, Any]
     ):
+        logger.info(f'--------message_to_orm--------')
         event_router = data['event_router']
-        data.update(
-            await event_router.orm.database_message(event)
-        )
+        # logger.info(f'{event=}')
+        orm_ret = await event_router.orm.message_to_orm(event)
+        data.update(orm_ret)
         return await handler(event, data)
 
 

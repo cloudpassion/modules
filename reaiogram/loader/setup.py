@@ -36,34 +36,3 @@ WEBHOOK_SSL = None
 
 WEBAPP_HOST = secrets.aiogram_pollbot.webhook.webapp.host
 WEBAPP_PORT = secrets.aiogram_pollbot.webhook.webapp.port
-
-
-# def register_middlewares(dp):
-#     return
-#     from ..middlewares import register_middlewares
-#     register_middlewares(dp)
-#
-#
-# def register_dialogs(dp):
-#     return
-#     #from ..dialogs import register_dialogs
-#
-#
-# def register_filters(dp):
-#     return
-#     # from reaiogram.filters import register_filters
-#     # register_filters(dp)
-#
-#
-# def register_handlers(dp):
-#     return
-#     #from ..handlers import register_handlers
-#     #register_handlers(dp)
-#
-#
-# async def register_webhook(bot):
-#     if WEBHOOK:
-#         await bot.set_webhook(
-#             url=WEBHOOK_URL,
-#             certificate=WEBHOOK_SSL,
-#         )

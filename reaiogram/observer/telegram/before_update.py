@@ -22,35 +22,13 @@ class BeforeUpdateTelegramEventObserver(
             flags: Optional[Dict[str, Any]] = None,
             **kwargs: Any,
     ) -> CallbackType:
-        """
-        Register event handler
-        """
-        if kwargs:
-            raise UnsupportedKeywordArgument(
-                "Passing any additional keyword arguments to the registrar method "
-                "is not supported.\n"
-                "This error may be caused when you are trying to register filters like in 2.x "
-                "version of this framework, if it's true just look at correspoding "
-                "documentation pages.\n"
-                f"Please remove the {set(kwargs.keys())} arguments from this call.\n"
-            )
-
-        if flags is None:
-            flags = {}
-
-        for item in filters:
-            if isinstance(item, Filter):
-                item.update_handler_flags(flags=flags)
-
-        self.handlers.appendleft(
-            HandlerObject(
-                callback=callback,
-                filters=[FilterObject(filter_) for filter_ in filters],
-                flags=flags,
-            )
+        cb = super(BeforeUpdateTelegramEventObserver, self).register(
+            callback, *filters, *flags, **kwargs
         )
+        handler = self.handlers.pop()
+        self.handlers.appendleft(handler)
 
-        return callback
+        return cb
 
 
 # class FullTelegramEventObserverForThread(DefaultTelegramEventObserver):

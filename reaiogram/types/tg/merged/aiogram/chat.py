@@ -10,7 +10,12 @@ class MergedAiogramChat(
     unmerged: AiogramChat
 
     async def _merge_aiogram_chat(self):
-        await self._default_merge_telegram()
+        # if not self.unmerged:
+        #     return
+
+        await self._default_merge_telegram('init_chat')
+
+        return self
 
     async def to_orm(self):
 

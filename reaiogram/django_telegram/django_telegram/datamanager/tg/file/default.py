@@ -60,7 +60,7 @@ class AbstractFile(ExtraBasedModel):
     # local
     md5 = models.CharField(max_length=128, null=True, blank=True)
     hash_type = models.CharField(
-        max_length=32, default='md5',
+        max_length=32, default=None,
         null=True, blank=True
     )
     path = models.CharField(max_length=1024, null=True, blank=True)

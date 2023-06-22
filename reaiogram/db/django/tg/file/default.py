@@ -17,8 +17,8 @@ class DjangoORMTgFile(
     DefaultDjangoTgORM
 ):
 
-    async def select_tg_file_unique_id(
-            self, file_unique_id: str,
+    async def select_tg_file_id(
+            self, file_id: str,
             db_class: Union[
                 type(DjangoTgDocument),
             ]
@@ -29,11 +29,10 @@ class DjangoORMTgFile(
         self.set_select(
             data=data,
             select_kwargs={
-                'file_unique_id': file_unique_id,
+                'file_id': file_id,
             },
             set_keys=True,
         )
-        logger.info(f'here35')
         return await self.select_one(
             data=data, db_class=db_class
         )
@@ -47,11 +46,10 @@ class DjangoORMTgFile(
             ]
     ) -> DjangoTgDocument:
 
-        logger.info(f'here35')
         self.set_select(
             data=data,
             select_kwargs={
-                'file_unique_id': data.file_unique_id
+                'file_id': data.file_id
             }
         )
         return await self.update_one(

@@ -1,11 +1,11 @@
 from log import logger
 
+from aiogram.enums.update_type import UpdateType
 
-from .types import AiogramUpdate
-
+from .....utils.enums import MESSAGE_UPDATE_TYPES
 from ...merged.default.update import AbstractMergedUpdate
-
 from ...message import MergedTelegramMessage
+from .types import AiogramUpdate
 
 
 class MergedAiogramUpdate(
@@ -15,32 +15,60 @@ class MergedAiogramUpdate(
     unmerged: AiogramUpdate
 
     async def _merge_aiogram_update(self):
+        #
+        # if not self.unmerged:
+        #     return
 
-        # logger.info(f'{self.unmerged=}')
-        await self._default_merge_telegram()
-
-        self.bot = self.merged_bot
+        await self._default_merge_telegram('m_a_update')
 
         # update_id
         self.id = self.unmerged.update_id
 
-        for upd in (
-            'message', 'edited_message',
-            'channel_post', 'edited_channel_post',
-        ):
-            merged = MergedTelegramMessage(
-                db=self.db,
-                message=getattr(
-                    self.unmerged,
-                    upd,
-                ),
-            )
+        class_to_merge = {
+            **{
+                k: MergedTelegramMessage for k in MESSAGE_UPDATE_TYPES
+            }
+        }
+        func_name_to_merge = {
+            **{
+                k: 'merge_message' for k in MESSAGE_UPDATE_TYPES
+            }
+        }
+        key_to_merge = {
+            **{
+                k: 'message' for k in MESSAGE_UPDATE_TYPES
+            }
+        }
+        # logger.info(f'{class_to_merge}')
+
+        for upd_key in UpdateType:
+            if upd_key not in class_to_merge:
+                # logger.info(f'skip_parsing: {upd_key=}')
+                continue
+
+            unmerged = getattr(self.unmerged, upd_key)
+            if not unmerged:
+                continue
+
+            try:
+                merged = getattr(self, f'merged_{upd_key}')
+                # logger.info(f'have merged: {upd_key=} -> {merged}')
+            except AttributeError:
+                merge_class = class_to_merge[upd_key]
+                merge_kwargs = {key_to_merge.get(upd_key): unmerged}
+                merged = merge_class(
+                    db=self.db,
+                    **merge_kwargs,
+                )
+
+                merge_func = getattr(merged, func_name_to_merge[upd_key])
+                await merge_func()
 
             setattr(
-                self, upd, merged
+                self, upd_key, merged
             )
-            self_merged = getattr(self, upd)
-            await self_merged._merge_aiogram_message()
+
+        return self
 
     async def to_orm(self):
         return await self.db.update_tg_update(
