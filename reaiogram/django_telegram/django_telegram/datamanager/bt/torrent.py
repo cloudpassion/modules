@@ -12,6 +12,7 @@ TORRENT_KEYS = [
     'creation_date',
 
     'announce_list',
+    'url_list',
 
     'publisher',
     'publisher-url',
@@ -52,7 +53,8 @@ class AbstractTorrentFile(ExtraBasedModel):
     created_by = models.CharField(max_length=1024, null=True, blank=True)
     creation_date = models.BigIntegerField(null=True, blank=True)
     #
-    announce_list = models.TextField(max_length=4096, null=True, blank=True)
+    announce_list = models.TextField(max_length=16384, null=True, blank=True)
+    url_list = models.TextField(max_length=16384, null=True, blank=True)
     #
     publisher = models.CharField(max_length=1024, null=True, blank=True)
     publisher_url = models.CharField(max_length=1024, null=True, blank=True)

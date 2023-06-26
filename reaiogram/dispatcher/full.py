@@ -1,6 +1,6 @@
 from .listen_update import ReviewUpdateDispatcher
 # from reaiogram.handlers.dispatcher.orm import OrmDispatcher
-from ..handlers.dispatcher.outer import OuterMiddlewareDispatcher
+from ..handling.dispatcher.outer import OuterMiddlewareDispatcher
 # from reaiogram.handlers.router.torrent.router import TorrentDispatcher
 
 

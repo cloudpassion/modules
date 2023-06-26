@@ -1,4 +1,5 @@
 import asyncio
+import redis
 
 from typing import Union
 
@@ -23,6 +24,7 @@ class ExtraDispatcher(DefaultDispatcher):
 
     bot: Bot
     bots: list
+    torrent: dict = {}
 
     router: Router
     event_observer: EventObserver
@@ -46,6 +48,7 @@ class ExtraDispatcher(DefaultDispatcher):
             while not self.orm.pool:
                 logger.info(f'wait {self.orm.pool=}')
                 await asyncio.sleep(1)
+
 
     # this
     async def _append_handler_zzzzzzzzzz(self):

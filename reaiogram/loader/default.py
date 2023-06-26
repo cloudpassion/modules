@@ -7,6 +7,7 @@ from aiogram import enums
 from aiogram.client.telegram import TelegramAPIServer
 from aiogram.client.session.aiohttp import AiohttpSession
 
+from config import secrets
 from log import logger
 
 from ..default.storage import MainStorage
@@ -40,19 +41,20 @@ async def default_loader():
     # proxy = ("protocol://host:port", auth)
     # "protocol://user:password@host:port"
     api_session = AiohttpSession(
+        # proxy=f'http://{secrets.proxy.http.ip}:{secrets.proxy.http.port}',
         proxy=None,
         api=TelegramAPIServer(
             base=API_BASE_URL,
             file=API_FILE_URL,
-        )
+        ),
     )
 
     bots = []
     for api_token in API_TOKENS:
         bot = Bot(
-            token=API_TOKEN,
+            token=api_token,
             parse_mode=enums.ParseMode.HTML,
-            session=api_session
+            # session=api_session,
         )
         bots.append(bot)
 

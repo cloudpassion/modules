@@ -146,6 +146,24 @@ class DefaultDjangoTgORM:
 
         return select_max
 
+    async def select_all(
+            self,
+            data,
+            db_class,
+    ):
+        if not hasattr(data, 'select'):
+            self.set_select(data, self.get_default_select(data))
+
+        try:
+            select_all = await sync_to_async(
+                db_class.objects.filter(**data.select).all)()
+        except Exception:
+            # log_stack.error(f'select: {id=}')
+            # quit()
+            return []
+
+        return select_all
+
     async def select_one(
             self,
             data,
@@ -255,11 +273,33 @@ class DefaultDjangoTgORM:
         #     ) for key in data.db_keys if hasattr(data, f'db_{key}')
         # }
         db_kwargs = self.gen_db_kwargs(data, db_class, key_prefix='_to_db_')
-        db_kwargs['hash'] = self.calc_hash(
+        db_kwargs['db_hash'] = self.calc_hash(
             db_class=db_class, db_kwargs=db_kwargs.copy(),
         )
         # logger.info(f'{db_kwargs=}, {db_class}')
         return await sync_to_async(db_class(**db_kwargs).save)()
+
+    async def bulk_add(
+            self,
+            data,
+            db_class,
+    ):
+        objects = []
+        for object in data:
+            if not hasattr(data, 'select'):
+                self.set_select(object, select_kwargs=self.get_default_select(object))
+
+            db_kwargs = self.gen_db_kwargs(
+                object, db_class=db_class, key_prefix='_to_db_'
+            )
+            db_kwargs['db_hash'] = self.calc_hash(
+                db_class=db_class, db_kwargs=db_kwargs.copy(),
+            )
+            # logger.info(f'{db_kwargs=}')
+            objects.append(db_class(**db_kwargs))
+
+        # logger.info(f'{objects=}')
+        return await sync_to_async(db_class.objects.bulk_create)(objects)
 
     async def update_one(
             self,
@@ -310,7 +350,7 @@ class DefaultDjangoTgORM:
             # }
 
             setattr(
-                db, 'hash',
+                db, 'db_hash',
                 self.calc_hash(db_class=db_class, db_kwargs=db_kwargs)
             )
             return await sync_to_async(db.save)()

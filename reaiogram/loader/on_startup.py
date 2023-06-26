@@ -9,6 +9,10 @@ from ..default.bot import Bot
 
 from .updates import get_updates
 
+# from reaiogram.loader.scripts.delete_message import delete_messages
+from .scripts.template import template
+from .scripts.edit_media import edit_media
+
 
 async def run_on_startup(
         dispatcher, bot: Bot, bots: List[Bot], **kwargs
@@ -24,6 +28,9 @@ async def run_on_startup(
 
     for bt in bots:
         logger.info(f'{bt=}')
+
+        await template(dispatcher, bot)
+        await edit_media(dispatcher, bot)
 
         asyncio.create_task(get_updates(dispatcher, bt))
         asyncio.create_task(bt.me())

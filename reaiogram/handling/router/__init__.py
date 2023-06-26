@@ -1,7 +1,7 @@
 from ...default.router import Router
 
-from .torrent import register_torrent_router
-from reaiogram.handlers.router.main import register_main_router
+from reaiogram.handling.torrent import register_torrent_router
+from reaiogram.handling.router.main import register_main_router
 
 
 def register_routers(dp):

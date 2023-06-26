@@ -59,6 +59,7 @@ class MyDjangoTgORM(
 
     async def _data_to_orm(
             self,
+            prefix='',
             **kwargs,
     ):
         key = list(kwargs)[0]
@@ -85,5 +86,5 @@ class MyDjangoTgORM(
         # await new_data._convert_to_orm('new_database')
         # logger.info(f'after orm')
 
-        data[f'merged_{key}'] = new_data
+        data[f'{f"{prefix}_" if prefix else ""}merged_{key}'] = new_data
         return data

@@ -1,6 +1,6 @@
 import asyncio
 
-from log import logger
+from log import logger, log_stack
 
 from .default import default_loader
 
@@ -16,9 +16,22 @@ async def main_loader():
     logger.info(f'{bots=}, {dp}')
 
     if not WEBHOOK:
-        await dp.start_polling(
-            *bots
-        )
+        while True:
+            try:
+
+                await dp.start_polling(
+                    *bots,
+                    # close_bot_session=False,
+                    # polling_timeout=60,
+                )
+            except Exception as exc:
+                log_stack.error('ch')
+
+            quit()
+            logger.info(f'ex')
+            await asyncio.sleep(5)
+            bots, dp = await default_loader()
+
     else:
         for bot in bots:
             await bot.set_webhook(

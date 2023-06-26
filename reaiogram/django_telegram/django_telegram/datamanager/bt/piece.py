@@ -5,20 +5,27 @@ from .torrent import TorrentFile
 
 PIECE_KEYS = [
 
-    'hash',
+    'info_hash',
 
     'torrent',
     'message',
 
+    'version',
     'length',
+    'begin',
 
     'resume_data',
 ]
 
 PIECE_SELECT_KEYS = [
-    'torrent', 'hash',
+    'torrent', 'info_hash',
 ]
-PIECE_HASH_KEY = 'torrent'
+
+PIECE_HASH_KEY = 'piece'
+PIECE_HASH_KEYS = [
+    'info_hash',
+    'torrent',
+]
 
 
 class TorrentPiece(ExtraBasedModel):
@@ -32,7 +39,7 @@ class TorrentPiece(ExtraBasedModel):
 
     num = models.BigAutoField(primary_key=True)
 
-    hash = models.CharField(max_length=2048, null=False)
+    info_hash = models.CharField(max_length=2048, null=False)
 
     torrent = models.ForeignKey(
         TorrentFile,
@@ -46,7 +53,12 @@ class TorrentPiece(ExtraBasedModel):
         null=True, blank=True,
     )
 
+    version = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name='Upload version'
+    )
     length = models.BigIntegerField()
+    begin = models.BigIntegerField(null=True, blank=True)
 
     resume_data = models.TextField(max_length=67108864, null=True, blank=True)
 

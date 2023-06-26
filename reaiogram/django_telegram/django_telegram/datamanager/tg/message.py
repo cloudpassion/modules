@@ -143,6 +143,13 @@ class AbstractTgMessage(ExtraBasedModel):
         on_delete=models.DO_NOTHING,
         null=True, blank=True,
     )
+    # 'photo',
+    # 'sticker',
+    # 'video',
+    # 'video_note',
+    # 'voice',
+    caption = models.TextField(max_length=8196, null=True, blank=True)
+    # 'caption_entities',
 
     discuss_message = models.ForeignKey(
         'TgMessage',

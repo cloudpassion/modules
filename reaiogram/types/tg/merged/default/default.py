@@ -11,7 +11,7 @@ class AbstractMergedTelegram:
     db_keys: tuple
 
     async def _default_merge_telegram(
-            self, test, merged=False
+            self, test='',
     ):
 
         # if merged:
@@ -55,15 +55,15 @@ class AbstractMergedTelegram:
 
         # await self._deep_to_orm(test)
 
-    async def _deep_to_orm(self, test):
+    async def _deep_to_orm(self, test=''):
 
         # logger.info(f'{test=}, {hex(id(self))=}')
         for key in self.db_keys:
 
             # logger.info(f'{key=}, {self=}')
-            if hasattr(self, f'_to_db_{key}'):
-                # logger.info(f'continue: {key=} in {self=}')
-                continue
+            # if hasattr(self, f'_to_db_{key}'):
+            #     # logger.info(f'continue: {key=} in {self=}')
+            #     continue
 
             # logger.info(f'{key=}, {self=}')
             try:
@@ -75,10 +75,6 @@ class AbstractMergedTelegram:
                 continue
 
             # logger.info(f'{key=}, {self_val=}')
-
-            if not self_val:
-                setattr(self, f'_to_db_{key}', None)
-                continue
 
             if isinstance(
                 self_val, datetime
@@ -92,6 +88,11 @@ class AbstractMergedTelegram:
                     )
             ):
                 setattr(self, f'_to_db_{key}', self_val)
+                continue
+
+            # at end, because 0 inteter 'is not' too
+            if not self_val:
+                setattr(self, f'_to_db_{key}', None)
                 continue
 
             # logger.info(f'{key=}, {self_val=}, {getattr(self, key)}')

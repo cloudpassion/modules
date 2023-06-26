@@ -1,17 +1,18 @@
+import asyncio
 from typing import Dict, Any, Callable, Awaitable
 
 from aiogram.types import Message, Update
 from aiogram.dispatcher.event.bases import SkipHandler
 
-from ....default.router import Router
-from ....utils.enums import MESSAGE_UPDATE_TYPES
+from reaiogram.default.router import Router
+from reaiogram.utils.enums import MESSAGE_UPDATE_TYPES
 
 from log import logger
 
 # from ....dispatcher.default import ExtraDispatcher
 
 from reaiogram.types.tg.message import MergedTelegramMessage
-from reaiogram.types.torrent.torrent import TorrentFile
+from reaiogram.types.torrent.torrent import TorrentFile, TorrentPiece
 
 
 # class TorrentRouter(
@@ -40,13 +41,24 @@ async def parse_message_for_torrents(
     dp = bot.dp
 
     torrent = TorrentFile(
+        dp=dp,
         orm=dp.orm, bot=bot,
         merged_message=merged_message,
     )
-    await torrent.download_file()
-    await torrent.save_to_django()
 
-    data.update({'torrent_file': torrent})
+    await torrent.download_torrent_from_tg()
+
+    if dp.torrent.get(torrent.info_hash):
+        logger.info(f'skip {torrent.info_hash}, now in queue')
+        return await handler(message, data)
+
+    dp.torrent[torrent.info_hash] = True
+    data['torrent'] = torrent
+
+    await torrent.save_to_django()
+    await torrent.add_pieces_to_django()
+
+    dp.torrent[torrent.info_hash] = False
 
     return await handler(message, data)
 
