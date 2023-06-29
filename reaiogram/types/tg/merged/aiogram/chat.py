@@ -13,21 +13,19 @@ class MergedAiogramChat(
         # if not self.unmerged:
         #     return
 
-        await self._default_merge_telegram('init_chat')
-
         return self
 
     async def to_orm(self):
 
-        await self.db.add_tg_chat_history(
+        await self.orm.add_tg_chat_history(
             chat=self
         )
 
-        return await self.db.update_tg_chat(
+        return await self.orm.update_tg_chat(
             chat=self,
         )
 
     async def from_orm(self):
-        return await self.db.select_tg_chat_id(
+        return await self.orm.select_tg_chat_id(
             id=self.id
         )

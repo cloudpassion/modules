@@ -54,7 +54,7 @@ class MergedPyrogramMessage:
 
                 ids = [_message.id, ]
                 try:
-                    db_check = self.db.select(
+                    db_check = self.orm.select(
                         'message',
                         _message.chat.id,
                         id=_message.id,
@@ -75,7 +75,7 @@ class MergedPyrogramMessage:
             for g_id, d_messages in delete_data.items():
 
                 for d_msg in d_messages:
-                    db_check = self.db.select(
+                    db_check = self.orm.select(
                         'message',
                         g_id,
                         id=d_msg,
@@ -83,7 +83,7 @@ class MergedPyrogramMessage:
                     if not db_check:
                         continue
 
-                    add_data = self.db.add_data(
+                    add_data = self.orm.add_data(
                         'message',
                         add_id=g_id,
                         id=d_msg,
@@ -93,7 +93,7 @@ class MergedPyrogramMessage:
 
             return
 
-        db_check = self.db.select(
+        db_check = self.orm.select(
             'message',
             message.chat.id,
             id=message.id
@@ -193,14 +193,14 @@ class MergedPyrogramMessage:
             #     db_discuss = None
             #     for msg in msg_group:
             #
-            #         db_msg = self.db.select(
+            #         db_msg = self.orn.select(
             #             'message',
             #             msg.chat.id,
             #             id=msg.id,
             #         )
             #         logger.info(f'group: {msg.id=}, {db_msg=}')
             #         if db_msg:
-            #             db_discuss = self.db.select(
+            #             db_discuss = self.orm.select(
             #                 '_message',
             #                 {
             #                     'discuss_message': db_msg
@@ -326,7 +326,7 @@ class MergedPyrogramMessage:
                     )
 
         _locals = locals()
-        add_data = self.db.add_data(
+        add_data = self.orm.add_data(
             'message',
             add_id=message.chat.id,
             # this line first, because id=

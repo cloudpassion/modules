@@ -4,17 +4,15 @@ from typing import List
 from log import logger
 
 from ..db import DbClass
-
 from ..default.bot import Bot
 
 from .updates import get_updates
-
-# from reaiogram.loader.scripts.delete_message import delete_messages
+from .setup import WEBHOOK
 from .scripts.template import template
 from .scripts.edit_media import edit_media
+from ..handling.torrent.scripts.startup import continue_torrent_downloading
 
-
-async def run_on_startup(
+async def _run_on_startup(
         dispatcher, bot: Bot, bots: List[Bot], **kwargs
 ):
 
@@ -32,5 +30,12 @@ async def run_on_startup(
         await template(dispatcher, bot)
         await edit_media(dispatcher, bot)
 
-        asyncio.create_task(get_updates(dispatcher, bt))
+        if WEBHOOK:
+            pass
+            # asyncio.create_task(bot.get_webhook_info())
+        else:
+            asyncio.create_task(get_updates(dispatcher, bt))
+
         asyncio.create_task(bt.me())
+
+    asyncio.create_task(continue_torrent_downloading(dispatcher, bot))

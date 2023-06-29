@@ -4,6 +4,7 @@ import redis
 from typing import Union
 
 from aiogram import Dispatcher as DefaultDispatcher
+from aiolimiter import AsyncLimiter
 
 from config import secrets
 from log import logger
@@ -24,7 +25,6 @@ class ExtraDispatcher(DefaultDispatcher):
 
     bot: Bot
     bots: list
-    torrent: dict = {}
 
     router: Router
     event_observer: EventObserver
@@ -49,7 +49,6 @@ class ExtraDispatcher(DefaultDispatcher):
                 logger.info(f'wait {self.orm.pool=}')
                 await asyncio.sleep(1)
 
-
     # this
     async def _append_handler_zzzzzzzzzz(self):
         pass
@@ -62,6 +61,7 @@ class ExtraDispatcher(DefaultDispatcher):
 
     async def aextra(self):
 
+        # handlers
         for key in dir(self):
             if '_append_handler_' in key:
 
@@ -74,3 +74,10 @@ class ExtraDispatcher(DefaultDispatcher):
                     self.registered_handlers.add(handler_name)
                 else:
                     logger.info(f'duplicate handler: {handler_name}')
+
+        for key in dir(self):
+
+            if '_aextra_' in key:
+                method = getattr(self, key)
+                logger.info(f'run {method=}')
+                await method()

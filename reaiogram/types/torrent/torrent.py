@@ -20,7 +20,7 @@ from ...types.django import (
 from ..tg.merged.default.default import AbstractMergedTelegram
 
 from bt.torrent import (
-    TorrentFile as DefaultTorrentFile,
+    # TorrentFile as DefaultTorrentFile,
     TorrentPiece as DefaultTorrentPiece,
 )
 
@@ -45,11 +45,11 @@ class TorrentFile(
     TorrentGrabVersion5,
 ):
 
-    async def download_torrent_from_tg(self):
+    async def download_torrent_from_tg(self, file_id=None):
 
         if not self.bytes_data:
             self.bytes_data = await self.bot.download(
-                file=self.message.document.file_id,
+                file=self.message.document.file_id if self.message else file_id,
             )
 
         self.parse()
@@ -80,6 +80,7 @@ class TorrentFile(
                 self.orm, self.bot, self,
                 piece=hash_pieces[info_hash],
             )
+
             self.pieces.append(piece)
 
     async def add_pieces_to_django(self):
@@ -98,23 +99,29 @@ class TorrentFile(
             data=piece,
             db_class=DjangoTorrentPiece
         )
-        # logger.info(f'{select_all=}')
+        logger.info(f'{len(select_all)=}')
+        logger.info(f'{len(self.metadata.pieces)=}')
 
         if len(select_all) == len(self.metadata.pieces):
             await self.gen_pieces_from_django(select_all)
             return
 
+        if len(select_all) > len(self.metadata.pieces):
+            logger.info(f'check pieces....')
+            return
+
         logger.info(f'need to add pieces')
         select_hashes = [x.info_hash for x in select_all]
 
-        logger.info(f'{len(self.metadata.pieces)=}')
+        # logger.info(f'{len(self.metadata.pieces)=}')
 
         # l = 0
         for metadata_piece in self.metadata.pieces:
             # l += 1
             # logger.info(f'{metadata_piece=}')
             piece = TorrentPiece(
-                self.orm, self.bot, torrent=self,
+                self.orm, self.bot,
+                torrent=self,
                 piece=metadata_piece,
             )
 
@@ -154,12 +161,13 @@ class TorrentFile(
             version
     ):
 
-        logger.info(F'download some pieces')
+        tasks = []
 
         if not self.pieces:
             logger.info(f'all pieces already downloaded')
             return
 
+        logger.info(f'mb download some pieces')
         # each piece in one message
         if version == 1:
             async with self.download_sem:
@@ -180,13 +188,19 @@ class TorrentFile(
             await self._download_some_pieces_version5()
 
         if version == 6:
+            # tasks.append(
+            #     asyncio.create_task(
+            #         self._download_some_pieces_version6()
+            #     )
+            # )
             await self._download_some_pieces_version6()
 
-        logger.info(f'dwn complete: {version=}')
-        try:
-            del self.dp.torrent[self.info_hash]
-        except KeyError:
-            pass
+        # await asyncio.gather(*tasks)
+
+        logger.info(f'dwn complete: {self.info_hash=}, {version=}')
+
+        torrent_status = self.dp.torrents[self.info_hash]
+        torrent_status.in_work = False
 
     async def bulk_pieces_to_orm(self):
         return await self.orm.bulk_add(

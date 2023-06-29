@@ -14,6 +14,8 @@ from log import logger
 from reaiogram.types.tg.message import MergedTelegramMessage
 from reaiogram.types.torrent.torrent import TorrentFile, TorrentPiece
 
+from ....types.torrent.status import TorrentStatus
+
 
 # class TorrentRouter(
 #     ExtraDispatcher
@@ -28,6 +30,7 @@ async def parse_message_for_torrents(
         message: Message,
         data: Dict[str, Any]
 ) -> Any:
+
     document = message.document
     if not document:
         return await handler(message, data)
@@ -35,7 +38,8 @@ async def parse_message_for_torrents(
     if document.mime_type != 'application/x-bittorrent':
         return await handler(message, data)
 
-    merged_message = data['merged_message']
+    merged_message = data['merged_message'] or data['merged_edited_message']
+    logger.info(f'{merged_message=}')
     bot = data['bot']
 
     dp = bot.dp
@@ -46,19 +50,37 @@ async def parse_message_for_torrents(
         merged_message=merged_message,
     )
 
+    if torrent.info_hash in (
+        '3f6cca286969bd029d6096023bc90fc3fdbc2eae',
+        '34af699d199c4b87d0602796acdf05a94975dabf',
+        '63d0151a5a6140ced94cb6adda7502821a005158',
+        'b3c10f038bc62b5231bae779578646c6e110839a',
+        'a31d032ee7454a3620c1b02ded773a9e6734afd6',
+        'b851474b74f65cd19f981c723590e3e520242b97',
+    ):
+        logger.info(f'skip old')
+        return
+
     await torrent.download_torrent_from_tg()
 
-    if dp.torrent.get(torrent.info_hash):
+    try:
+        torrent_status = dp.torrents[torrent.info_hash]
+    except KeyError:
+        torrent_status = TorrentStatus()
+        dp.torrents[torrent.info_hash] = torrent_status
+
+    if torrent_status.in_work:
         logger.info(f'skip {torrent.info_hash}, now in queue')
         return await handler(message, data)
 
-    dp.torrent[torrent.info_hash] = True
-    data['torrent'] = torrent
+    torrent_status.in_work = True
 
     await torrent.save_to_django()
     await torrent.add_pieces_to_django()
 
-    dp.torrent[torrent.info_hash] = False
+    data['torrent'] = torrent
+
+    torrent_status.in_work = False
 
     return await handler(message, data)
 

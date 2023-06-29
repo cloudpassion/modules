@@ -22,12 +22,16 @@ class TorrentMergeHandler(BaseHandler):
 
         torrent: TorrentFile = data.get('torrent')
 
-        dp.torrent[torrent.info_hash] = True
+        torrent_status = dp.torrents[torrent.info_hash]
+        torrent_status.in_work = True
 
         if not torrent:
             return
 
         await torrent.grab_torrent_from_telegram(version=6)
+
+        torrent_status.in_work = False
+
         # asyncio.create_task(
         #     torrent.grab_torrent_from_telegram(version=5)
         # )

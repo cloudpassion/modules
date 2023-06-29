@@ -10,23 +10,23 @@ from log import logger
 from .merged.aiogram.types import AiogramUser
 from .merged.aiogram.user import MergedAiogramUser
 
-from ...types.django import TgUser
-
 
 class MergedTelegramUser(
     MergedAiogramUser,
 ):
 
-    def __init__(self, db, user):
+    def __init__(self, orm, user):
+
+        self.orm = orm
         self.unmerged = user
-        self.db_class = TgUser
-        self.db = db
 
     async def merge_user(self):
 
         if self.unmerged is None:
             # logger.info(f'no user {hex(id(self))=}')
             return None
+
+        await self._default_merge_telegram('m_a_user')
 
         # if isinstance(self.init_message, (
         #         PyrogramMessage,

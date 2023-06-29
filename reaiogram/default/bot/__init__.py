@@ -1,1 +1,7 @@
-from .full import FullBot as Bot
+from .me_orm import OrmMeBot
+
+
+class Bot(
+    OrmMeBot
+):
+    pass

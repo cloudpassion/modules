@@ -25,10 +25,12 @@ class TorrentDownloadHandler(BaseHandler):
         if not torrent:
             return
 
-        dp.torrent[torrent.info_hash] = True
-        await torrent.download_some_pieces(version=6)
+        torrent_status = dp.torrents[torrent.info_hash]
+        torrent_status.in_work = True
 
-        dp.torrent[torrent.info_hash] = False
+        asyncio.create_task(
+            torrent.download_some_pieces(version=6)
+        )
 
 
 def _():

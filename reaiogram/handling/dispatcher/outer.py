@@ -11,7 +11,7 @@ from reaiogram.dispatcher.default import ExtraDispatcher
 
 class OuterMiddlewareDispatcher(ExtraDispatcher):
 
-    async def _append_handler_0_outer_debug(self):
+    async def _append_handler_000_outer_debug(self):
 
         @self.update.outer_middleware()
         async def outer_debug(

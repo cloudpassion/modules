@@ -122,6 +122,7 @@ class AbstractMergedTelegram:
             #     if br:
             #         break
 
+            # logger.info(f'{self_val=}, {self=}')
             # self_val._default_merge_telegram(f'from_{test}')
             await self_val._deep_to_orm(f'from_{test}')
             # await self_val._deep_to_orm(f'from_{test}')

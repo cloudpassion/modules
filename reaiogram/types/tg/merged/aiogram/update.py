@@ -19,12 +19,10 @@ class MergedAiogramUpdate(
         # if not self.unmerged:
         #     return
 
-        await self._default_merge_telegram('m_a_update')
-
         # update_id
         self.id = self.unmerged.update_id
 
-        class_to_merge = {
+        classess_to_merge = {
             **{
                 k: MergedTelegramMessage for k in MESSAGE_UPDATE_TYPES
             }
@@ -39,10 +37,10 @@ class MergedAiogramUpdate(
                 k: 'message' for k in MESSAGE_UPDATE_TYPES
             }
         }
-        # logger.info(f'{class_to_merge}')
+        # logger.info(f'{classess_to_merge}')
 
         for upd_key in UpdateType:
-            if upd_key not in class_to_merge:
+            if upd_key not in classess_to_merge:
                 # logger.info(f'skip_parsing: {upd_key=}')
                 continue
 
@@ -50,19 +48,15 @@ class MergedAiogramUpdate(
             if not unmerged:
                 continue
 
-            try:
-                merged = getattr(self, f'merged_{upd_key}')
-                # logger.info(f'have merged: {upd_key=} -> {merged}')
-            except AttributeError:
-                merge_class = class_to_merge[upd_key]
-                merge_kwargs = {key_to_merge.get(upd_key): unmerged}
-                merged = merge_class(
-                    db=self.db,
-                    **merge_kwargs,
-                )
+            merge_class = classess_to_merge[upd_key]
+            merge_kwargs = {key_to_merge.get(upd_key): unmerged}
+            merged = merge_class(
+                orm=self.orm,
+                **merge_kwargs,
+            )
 
-                merge_func = getattr(merged, func_name_to_merge[upd_key])
-                await merge_func()
+            merge_func = getattr(merged, func_name_to_merge[upd_key])
+            await merge_func()
 
             setattr(
                 self, upd_key, merged
@@ -71,11 +65,11 @@ class MergedAiogramUpdate(
         return self
 
     async def to_orm(self):
-        return await self.db.update_tg_update(
+        return await self.orm.update_tg_update(
             update=self,
         )
 
     async def from_orm(self):
-        return await self.db.select_tg_update(
+        return await self.orm.select_tg_update(
             bot=self.bot, id=self.id
         )

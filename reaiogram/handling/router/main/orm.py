@@ -18,7 +18,10 @@ async def update_to_orm(
         data: Dict[str, Any]
 ) -> Any:
 
-    logger.info(f'-----------------update_to_orm-------------------------')
+    # logger.info(f'-----------------update_to_orm-------------------------')
+    logger.info(f'---------------------now-ret---------------------------')
+
+    return await handler(event, data)
     # return await handler(event, data)
 
     event_update = data['event_update']

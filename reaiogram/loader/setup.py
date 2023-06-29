@@ -1,4 +1,5 @@
 import os
+import ssl
 
 from config import settings, secrets
 from log import logger
@@ -31,8 +32,22 @@ WEBHOOK = settings.bot.webhook
 WEBHOOK_HOST = secrets.aiogram_pollbot.webhook.host
 WEBHOOK_PORT = secrets.aiogram_pollbot.webhook.port
 WEBHOOK_PATH = secrets.aiogram_pollbot.webhook.path
-WEBHOOK_URL = f'{WEBHOOK_HOST}:{WEBHOOK_PORT}/{WEBHOOK_PATH}'
-WEBHOOK_SSL = None
+if WEBHOOK_PORT:
+    WEBHOOK_URL = f'{WEBHOOK_HOST}:{WEBHOOK_PORT}/{WEBHOOK_PATH}'
+else:
+    WEBHOOK_URL = f'{WEBHOOK_HOST}/{WEBHOOK_PATH}'
+
+WEBHOOK_SSL_CERT = secrets.aiogram_pollbot.webhook.ssl.cert
+WEBHOOK_SSL_KEY = secrets.aiogram_pollbot.webhook.ssl.key
+WEBHOOK_SECRET = secrets.aiogram_pollbot.webhook.secret
+
+if WEBHOOK_SSL_CERT and WEBHOOK_SSL_KEY:
+    context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+    context.load_cert_chain(WEBHOOK_SSL_CERT, WEBHOOK_SSL_KEY)
+
+    WEBHOOK_SSL = context
+else:
+    WEBHOOK_SSL = None
 
 WEBAPP_HOST = secrets.aiogram_pollbot.webhook.webapp.host
 WEBAPP_PORT = secrets.aiogram_pollbot.webhook.webapp.port

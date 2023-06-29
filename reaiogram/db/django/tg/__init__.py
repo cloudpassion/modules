@@ -7,13 +7,14 @@ from ...django.tg.message import DjangoORMTgMessage
 
 from ...django.tg.file import DjangoORMTgFiles
 
-from log import logger
+from log import logger, log_stack
 
 from ....types.tg.message import MergedTelegramMessage
 from ....types.tg.update import MergedTelegramUpdate
 from ....types.tg.bot import MergedTelegramBot
 
 from ...exceptions import DbBreakException
+from ....utils.enums import UPDATE_TYPES
 
 
 MERGED_CL = {
@@ -54,6 +55,7 @@ class MyDjangoTgORM(
         except DbBreakException:
             return {}
         except Exception:
+            log_stack.error(f'{kwargs=}')
             quit()
             return 'stack'
 
@@ -76,7 +78,7 @@ class MyDjangoTgORM(
         # logger.info(f'{key=}, {merge_class=}')
 
         # merge message from pyrogram and aiogram to one format
-        new_data = merge_class(db=self, **merge_kwargs)
+        new_data = merge_class(orm=self, **merge_kwargs)
 
         merge_func = getattr(new_data, f'merge_{key}')
         # logger.info(f'before merge {new_data=}')
@@ -86,5 +88,13 @@ class MyDjangoTgORM(
         # await new_data._convert_to_orm('new_database')
         # logger.info(f'after orm')
 
-        data[f'{f"{prefix}_" if prefix else ""}merged_{key}'] = new_data
+        if key == 'update':
+            data.update({
+                **{
+                    f'merged_{u}': getattr(new_data, u) for u in UPDATE_TYPES
+                }
+            })
+        else:
+            data[f'{f"{prefix}_" if prefix else ""}merged_{key}'] = new_data
+
         return data

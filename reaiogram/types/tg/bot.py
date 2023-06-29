@@ -13,16 +13,17 @@ class MergedTelegramBot(
     MergedAiogramBot,
 ):
 
-    def __init__(self, db, bot):
+    def __init__(self, orm, bot):
+        self.orm = orm
         self.unmerged = bot
-        self.db_class = TgBot
-        self.db = db
 
     async def merge_bot(self):
 
         if self.unmerged is None:
             # logger.info(f'no bot {hex(id(self))=}')
             return None
+
+        await self._default_merge_telegram('init_bot')
 
         # if isinstance(self.init_message, (
         #     PyrogramMessage,

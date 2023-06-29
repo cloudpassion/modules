@@ -160,23 +160,23 @@ class TorrentGrabVersion5(
 
                 document = dj_piece.message.document
 
-                if os.path.isfile(tmp_path) and os.stat(tmp_path).st_size != 0:
-                    with open(tmp_path, 'rb') as f:
-                        file_data = BytesIO(f.read())
-
-                    file_bytes[txt_file] = file_data
-                    continue
+                # if os.path.isfile(tmp_path) and os.stat(tmp_path).st_size != 0:
+                #     with open(tmp_path, 'rb') as f:
+                #         file_data = BytesIO(f.read())
+                #
+                #     file_bytes[txt_file] = file_data
+                #     continue
 
                 size = document.file_size
                 if size <= 20971520:
+                    # logger.info(f'download')
                     file_bytes[txt_file] = await self.bot.download(
                         document.file_id
                     )
-
-                    with open(tmp_path, 'wb') as f:
-                        f.write(file_bytes[txt_file].read())
-
-                    file_bytes[txt_file].seek(0)
+                    # with open(tmp_path, 'wb') as f:
+                    #     f.write(file_bytes[txt_file].read())
+                    #
+                    # file_bytes[txt_file].seek(0)
                 else:
 
                     async def sleep_send(file_id):
@@ -253,8 +253,8 @@ class TorrentGrabVersion5(
                                 logger.info(f'{exc}')
                                 await asyncio.sleep(20)
 
-                        with open(tmp_path, 'wb') as f:
-                            f.write(file_data.read())
+                        # with open(tmp_path, 'wb') as f:
+                        #     f.write(file_data.read())
 
                         file_data.seek(0)
                         break

@@ -21,6 +21,7 @@ TORRENT_SELECT_KEYS = [
     'info_hash',
 ]
 TORRENT_HASH_KEY = 'torrent'
+TORRENT_HASH_KEYS = TORRENT_KEYS
 
 
 class AbstractTorrentFile(ExtraBasedModel):

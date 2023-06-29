@@ -35,16 +35,18 @@ class MergedTelegramMessage(
     MergedAiogramMessage,
 ):
 
-    def __init__(self, db, message):
+    def __init__(self, orm, message):
+
+        self.orm = orm
         self.unmerged = message
-        self.db_class = TgMessage
-        self.db = db
 
     async def merge_message(self):
 
         if self.unmerged is None:
             # logger.info(f'no message {hex(id(self))=}')
             return None
+
+        await self._default_merge_telegram('m_a_message')
 
         # if isinstance(self.init_message, (
         #     PyrogramMessage,

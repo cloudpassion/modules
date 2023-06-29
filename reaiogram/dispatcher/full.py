@@ -1,13 +1,19 @@
 from .listen_update import ReviewUpdateDispatcher
-# from reaiogram.handlers.dispatcher.orm import OrmDispatcher
+from ..handling.dispatcher.orm import OrmDispatcher
 from ..handling.dispatcher.outer import OuterMiddlewareDispatcher
-# from reaiogram.handlers.router.torrent.router import TorrentDispatcher
+from .new_bot import NewBotDispatcher
+
+from reaiogram.handling.torrent.dispatcher import TorrentDispatcher
 
 
 class FullDispatcher(
-    # OrmDispatcher,
     OuterMiddlewareDispatcher,
+    OrmDispatcher,
+
     ReviewUpdateDispatcher,
-    # TorrentDispatcher
+
+    NewBotDispatcher,
+
+    TorrentDispatcher,
 ):
     pass

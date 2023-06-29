@@ -24,7 +24,7 @@ PIECE_SELECT_KEYS = [
 PIECE_HASH_KEY = 'piece'
 PIECE_HASH_KEYS = [
     'info_hash',
-    'torrent',
+    'torrent.info_hash',
 ]
 
 

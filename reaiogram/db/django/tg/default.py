@@ -2,7 +2,6 @@ import asyncio
 
 import django.db.utils
 import re
-import hashlib
 import os
 import ujson as json
 from psycopg2.errorcodes import UNIQUE_VIOLATION
@@ -34,6 +33,7 @@ from typing import List
 
 
 from config import settings
+from log import log_stack, logger
 
 from reaiogram.django_telegram.django_telegram.datamanager.models import (
     TgUser as DjangoTgUser,
@@ -44,12 +44,14 @@ from reaiogram.django_telegram.django_telegram.datamanager.models import (
     TgBot as DjangoTgBot,
 )
 
-from log import log_stack, logger
+from ...functions import DbFunctions
 
 # # from .....db.types import MERGED_TG_CLASSES
 
 
-class DefaultDjangoTgORM:
+class DefaultDjangoTgORM(
+    DbFunctions,
+):
 
     hash_strings = {
 
@@ -357,49 +359,6 @@ class DefaultDjangoTgORM:
 
         return db
 
-    def calc_hash(self, db_class, db_kwargs):
-
-        hash_keys = self.hash_strings[db_class.hash_key]
-
-        _strings = []
-
-        for key in hash_keys:
-            # db_kwargs: # (*hash_keys, ): #*extra):
-            try:
-                value = db_kwargs[key]
-            except KeyError:
-                value = None
-
-            if hasattr(value, 'hash_key'):
-                string = self.calc_hash(
-                    value,
-                    {
-                        key: getattr(
-                            value, key
-                        ) for key in value.db_keys if hasattr(value, key)
-                    }
-                )
-
-            else:
-                string = f'{value}'
-
-            _strings.append(string)
-
-            # try:
-            #     # if isinstance(
-            #     #         strings[_string], datetime
-            #     # ):
-            #     #     string = strings[_string].strftime('%s')
-            #     # else
-            #     string = str(db_kwargs[key])
-            # except KeyError:
-            #     if new and hasattr(new, _string):
-            #         string = str(getattr(new, _string))
-            #     else:
-            #         continue
-
-        hash_object = hashlib.sha512(''.join(_strings).encode('utf8'))
-        return hash_object.hexdigest()
 
     # def db_parse_files(
     #         self,
@@ -890,4 +849,3 @@ class DefaultDjangoTgORM:
     # @sync_to_async
     # def get_item(item_id) -> Item:
     #     return Item.objects.filter(id=int(item_id)).first()
-

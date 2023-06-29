@@ -2,14 +2,16 @@ import os
 import asyncio
 import django
 
+from typing import Any
+from aiohttp.web import Application
 from aiogram import enums
 
 from aiogram.client.telegram import TelegramAPIServer
-from aiogram.client.session.aiohttp import AiohttpSession
 
 from config import secrets
 from log import logger
 
+from ..default.aiohttp.session import AiohttpSession
 from ..default.storage import MainStorage
 from ..default.router import Router
 from ..default.bot import Bot
@@ -29,8 +31,8 @@ from .setup import (
     API_BASE_URL, API_FILE_URL,
 )
 
-from .on_startup import run_on_startup
-from .on_shutdown import run_on_shutdown
+from .on_startup_local import _run_on_startup
+from .on_shutdown_local import _run_on_shutdown
 
 
 async def default_loader():
@@ -54,7 +56,7 @@ async def default_loader():
         bot = Bot(
             token=api_token,
             parse_mode=enums.ParseMode.HTML,
-            # session=api_session,
+            session=api_session,
         )
         bots.append(bot)
 
@@ -68,8 +70,8 @@ async def default_loader():
         setattr(bot, 'dp', dp)
 
     # on_event
-    dp.startup.register(run_on_startup)
-    dp.shutdown.register(run_on_shutdown)
+    dp.startup.register(_run_on_startup)
+    dp.shutdown.register(_run_on_shutdown)
 
     # register handlers
     register_middlewares(dp)

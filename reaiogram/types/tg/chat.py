@@ -13,16 +13,17 @@ class MergedTelegramChat(
     MergedAiogramChat,
 ):
 
-    def __init__(self, db, chat):
+    def __init__(self, orm, chat):
         self.unmerged = chat
-        self.db_class = TgChat
-        self.db = db
+        self.orm = orm
 
     async def merge_chat(self):
 
         if self.unmerged is None:
             # logger.info(f'no chat {hex(id(self))=}')
             return
+
+        await self._default_merge_telegram('init_chat')
 
         # if isinstance(self.init_message, (
         #     PyrogramMessage,
