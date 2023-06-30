@@ -92,4 +92,6 @@ async def main_loader():
 
 
 def run_main():
-    asyncio.run(main_loader(), debug=True)
+    # asyncio.run(main_loader(), debug=True)
+    asyncio.run(main_loader())
+

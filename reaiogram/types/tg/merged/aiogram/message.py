@@ -28,14 +28,16 @@ class MergedAiogramMessage(
 
         # from
         from_user = MergedTelegramUser(
-            orm=self.orm, user=self.unmerged.from_user
+            orm=self.orm, user=self.unmerged.from_user,
+            skip_orm=self.skip_orm
         )
         # logger.info(f'msg:from_user: {from_user=}')
         self.from_user = await from_user.merge_user()
 
         # chat
         chat = MergedTelegramChat(
-            orm=self.orm, chat=self.unmerged.chat
+            orm=self.orm, chat=self.unmerged.chat,
+            skip_orm=self.skip_orm
         )
         # logger.info(f'msg:chat: {chat=}')
         self.chat = await chat.merge_chat()
@@ -44,31 +46,32 @@ class MergedAiogramMessage(
 
         # sender_chat
         sender_chat = MergedTelegramChat(
-            orm=self.orm, chat=self.unmerged.sender_chat
+            orm=self.orm, chat=self.unmerged.sender_chat,
+            skip_orm=self.skip_orm
         )
         # logger.info(f'msg:sender_chat: {sender_chat=}')
         self.sender_chat = await sender_chat.merge_chat()
 
         # forward_from
         forward_from = MergedTelegramUser(
-            orm=self.orm, user=self.unmerged.forward_from
+            orm=self.orm, user=self.unmerged.forward_from,
+            skip_orm=self.skip_orm
         )
         # logger.info(f'msg:forward_from: {forward_from=}')
         self.forward_from = await forward_from.merge_user()
 
         # forward_from_chat
         forward_from_chat = MergedTelegramChat(
-            orm=self.orm, chat=self.unmerged.forward_from_chat
+            orm=self.orm, chat=self.unmerged.forward_from_chat,
+            skip_orm=self.skip_orm
         )
         # logger.info(f'msg:forward_from_chat: {forward_from_chat=}')
         self.forward_from_chat = await forward_from_chat.merge_chat()
 
         # files
-        # document_chat = self.unmerged.chat or self.unmerged.sender_chat
         document = MergedTelegramDocument(
             orm=self.orm, document=self.unmerged.document,
-            merged_chat=chat
-        #document_chat
+            skip_orm=self.skip_orm
         )
         self.document = await document.merge_document()
 

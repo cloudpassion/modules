@@ -13,11 +13,12 @@ class MergedTelegramDocument(
     MergedAiogramDocument,
 ):
 
-    def __init__(self, orm, document, merged_chat=None):
+    def __init__(self, orm, document, skip_orm=False):
 
         self.orm = orm
         self.unmerged = document
-        self.chat = merged_chat
+        self.skip_orm = skip_orm
+        # self.chat = merged_chat
 
     async def merge_document(self):
 
@@ -37,6 +38,8 @@ class MergedTelegramDocument(
         )):
             await self._merge_aiogram_document()
 
-        await self._convert_to_orm()
+        if not self.skip_orm:
+            await self._convert_to_orm()
+
         return self
 

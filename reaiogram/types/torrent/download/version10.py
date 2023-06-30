@@ -33,52 +33,55 @@ from ..default import (
 # UPLOAD_AT_SECOND = AsyncLimiter(1, time_period=1)
 
 
-class TorrentDownloadVersion6(
+class TorrentDownloadVersion10(
     DefaultTorrent,
     AbstractMergedTelegram
 ):
 
-    # pieces pack at once. size don't exceed
-    # upload 50MB, but download 50MB
-    # drop upload to 20MB for skip downloading by telethon
-    async def _download_some_pieces_version6(
-            self, twice=True
+    def _get_by_hash_for10(
+            self, info_hash, missing_pieces
     ):
+        item = [
+            p for p in missing_pieces if (
+                    p.hash == from_hex_to_bytes(info_hash)
+            )
+        ][0]
+        yield item
 
+    async def _get_missing_for10(
+            self
+    ):
         redis_hashes = []
         missing_pieces = set(self.metadata.pieces)
 
         for torrent_piece in self.pieces:
 
-            # continue
+            info_hash = torrent_piece.info_hash
+
+            item = self._get_by_hash_for10(torrent_piece.info_hash, missing_pieces)
+            # check for memory cache
+            redis = self.redis.get(info_hash)
+            if redis:
+                redis_hashes.append(info_hash)
+                missing_pieces.remove(next(item))
+                continue
 
             dj: DjangoTorrentPiece = await torrent_piece.from_orm()
+            if dj.message or dj.resume_data:
+                missing_pieces.remove(next(item))
 
-            info_hash = torrent_piece.info_hash
-            redis = self.redis.get(info_hash)
-            if dj.message or dj.resume_data or redis:
-                if redis:
-                    redis_hashes.append(info_hash)
+        return missing_pieces, redis_hashes
 
-                item = [
-                    p for p in missing_pieces if (
-                            p.hash == from_hex_to_bytes(torrent_piece.info_hash)
-                    )
-                ][0]
-                # index = missing_pieces.index()
-                # del missing_pieces[index]
-                missing_pieces.remove(item)
-                # logger.info(f'piece already downloaded')
-                # continue
+    # pieces pack at once. size don't exceed
+    # upload 50MB, but download 50MB
+    # drop upload to 20MB for skip downloading by telethon
+    async def _download_some_pieces_version10(self):
 
-            # await asyncio.sleep(0)
+        missing_pieces, redis_hashes = await self._get_missing_for10()
 
-        # if not missing_pieces:
-        #     return
-        #
         tasks = []
         task = asyncio.create_task(
-            self._mon_completed_and_upload_version6(
+            self._mon_completed_and_upload_for10(
                 missing_pieces,
                 redis_hashes,
             )
@@ -93,10 +96,9 @@ class TorrentDownloadVersion6(
                 to_bytes=True,
             )
 
-        return tasks
         # await asyncio.gather(*tasks)
 
-    async def _mon_completed_and_upload_version6(
+    async def _mon_completed_and_upload_for10(
             self,
             missing_pieces,
             redis_hashes,
@@ -195,7 +197,7 @@ class TorrentDownloadVersion6(
             # tm_start = time.time()
             # task = \
             task = asyncio.create_task(
-                self._mon_upload_task_version6(
+                self._mon_upload_task_version10(
                     pieces_to_upload,
                     hashes,
                     text,
@@ -219,7 +221,7 @@ class TorrentDownloadVersion6(
         # await asyncio.gather(*tasks)
         # return tasks
 
-    async def _mon_upload_task_version6(
+    async def _mon_upload_task_version10(
             self,
             pieces_to_upload,
             hashes,
@@ -234,12 +236,10 @@ class TorrentDownloadVersion6(
             b''.join([self.redis.get(h) for h in hashes]),
             filename=f'{caption}.data'
         )
-        setattr(piece_file, 'prefix', 'piece')
         txt_file = BufferedInputFile(
             text.encode('utf8'),
             filename=f'{caption}.txt'
         )
-        setattr(txt_file, 'prefix', 'txt')
 
         bt = secrets.bt.chat
 
@@ -273,8 +273,7 @@ class TorrentDownloadVersion6(
                             raise Exception('no message')
 
                     kwargs_data = await self.orm.message_to_orm(
-                        message,
-                        prefix=f'{input_file.prefix}'
+                        message, prefix='sended'
                     )
                     await self.dp.put_upload_bot(upload_bot)
                     break
@@ -307,7 +306,7 @@ class TorrentDownloadVersion6(
 
                 await asyncio.sleep(0)
 
-        merged_message = kwargs_data['piece_merged_message']
+        merged_message = kwargs_data['sended_merged_message']
         for uploaded_piece in pieces_to_upload:
 
             # logger.info(f'{uploaded_piece._to_db_torrent=}')
@@ -317,24 +316,11 @@ class TorrentDownloadVersion6(
             from_orm = await merged_message.from_orm()
             while not from_orm:
                 from_orm = await merged_message.from_orm()
-                await asyncio.sleep(30)
+                await asyncio.sleep(1)
                 logger.info(f'wait from_orm')
 
             uploaded_piece._to_db_message = from_orm
             await uploaded_piece.update_orm()
-
-            from_orm = await uploaded_piece.from_orm()
-
-            while not from_orm:
-                from_orm = await merged_message.from_orm()
-                await asyncio.sleep(30)
-                logger.info(f'wait from_orm_2')
-
-            while not hasattr(from_orm, 'message') or from_orm.message.id != merged_message.id:
-
-                from_orm = await uploaded_piece.from_orm()
-                await asyncio.sleep(30)
-                logger.info(f'wait from_orm_id')
 
             self.redis.delete(uploaded_piece.info_hash) #piece.hash)
 

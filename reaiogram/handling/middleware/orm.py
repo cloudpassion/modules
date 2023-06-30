@@ -16,7 +16,7 @@ class OrmMessageMiddleware(BaseMiddleware):
             data: Dict[str, Any]
     ):
 
-        logger.info(f'--------ret-message_to_orm--------')
+        # logger.info(f'--------ret-message_to_orm--------')
         return await handler(event, data)
         logger.info(f'--------message_to_orm--------')
         event_router = data['event_router']
@@ -27,8 +27,8 @@ class OrmMessageMiddleware(BaseMiddleware):
 
 
 def register_orm_middleware(dp):
-    dp.message.outer_middleware(OrmMessageMiddleware())
-    dp.edited_message.outer_middleware(OrmMessageMiddleware())
+    # dp.message.outer_middleware(OrmMessageMiddleware())
+    # dp.edited_message.outer_middleware(OrmMessageMiddleware())
     # router = Router(name='next_update')
     # dp.update.middleware(NextUpdateHandler())
     return

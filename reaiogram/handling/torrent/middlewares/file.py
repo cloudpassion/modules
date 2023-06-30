@@ -39,7 +39,6 @@ async def parse_message_for_torrents(
         return await handler(message, data)
 
     merged_message = data['merged_message'] or data['merged_edited_message']
-    logger.info(f'{merged_message=}')
     bot = data['bot']
 
     dp = bot.dp
@@ -50,18 +49,18 @@ async def parse_message_for_torrents(
         merged_message=merged_message,
     )
 
+    await torrent.download_torrent_from_tg()
+
     if torrent.info_hash in (
-        '3f6cca286969bd029d6096023bc90fc3fdbc2eae',
-        '34af699d199c4b87d0602796acdf05a94975dabf',
-        '63d0151a5a6140ced94cb6adda7502821a005158',
-        'b3c10f038bc62b5231bae779578646c6e110839a',
-        'a31d032ee7454a3620c1b02ded773a9e6734afd6',
-        'b851474b74f65cd19f981c723590e3e520242b97',
+            '3f6cca286969bd029d6096023bc90fc3fdbc2eae',
+            '34af699d199c4b87d0602796acdf05a94975dabf',
+            '63d0151a5a6140ced94cb6adda7502821a005158',
+            'b3c10f038bc62b5231bae779578646c6e110839a',
+            'a31d032ee7454a3620c1b02ded773a9e6734afd6',
+            'b851474b74f65cd19f981c723590e3e520242b97',
     ):
         logger.info(f'skip old')
         return
-
-    await torrent.download_torrent_from_tg()
 
     try:
         torrent_status = dp.torrents[torrent.info_hash]

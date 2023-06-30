@@ -286,22 +286,25 @@ class DefaultDjangoTgORM(
             data,
             db_class,
     ):
-        objects = []
-        for object in data:
-            if not hasattr(data, 'select'):
-                self.set_select(object, select_kwargs=self.get_default_select(object))
+        test_d = {}
+
+        all_data = []
+        for obj in data:
+            # if not hasattr(data, 'select'):
+            #     self.set_select(obj, select_kwargs=self.get_default_select(obj))
 
             db_kwargs = self.gen_db_kwargs(
-                object, db_class=db_class, key_prefix='_to_db_'
+                obj, db_class=db_class, key_prefix='_to_db_'
             )
             db_kwargs['db_hash'] = self.calc_hash(
                 db_class=db_class, db_kwargs=db_kwargs.copy(),
             )
+
             # logger.info(f'{db_kwargs=}')
-            objects.append(db_class(**db_kwargs))
+            all_data.append(db_class(**db_kwargs.copy()))
 
         # logger.info(f'{objects=}')
-        return await sync_to_async(db_class.objects.bulk_create)(objects)
+        return await sync_to_async(db_class.objects.bulk_create)(all_data)
 
     async def update_one(
             self,
@@ -337,10 +340,10 @@ class DefaultDjangoTgORM(
             except AttributeError:
                 new_value = None
 
+            # logger.info(f'{key=}, {db_value=} -> {new_value=}')
             if db_value != new_value:
                 updated = True
                 setattr(db, key, new_value)
-                # logger.info(f'update {key=}, {db_value=} -> {new_value=}')
 
         if updated:
 

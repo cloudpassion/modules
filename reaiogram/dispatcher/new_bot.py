@@ -49,7 +49,7 @@ class NewBotDispatcher(
 
         try:
             self.upload_bots.pop(self.upload_bots.index(bot))
-        except IndexError:
+        except (IndexError, ValueError):
             pass
 
         await asyncio.sleep(random.randint(1, 10))
@@ -58,12 +58,12 @@ class NewBotDispatcher(
             await asyncio.sleep(10)
 
         if self.upload_bots:
-            logger.info(f'ret')
+            # logger.info(f'ret')
             return await self.get_upload_bot()
 
         self.upload_close_wait = True
 
-        logger.info(f'old bot {bot=} close, {len(self.upload_bots)=}')
+        # logger.info(f'old bot {bot=} close, {len(self.upload_bots)=}')
         async with self.upload_close:
 
             # self.upload_close_wait = True

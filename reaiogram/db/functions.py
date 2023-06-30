@@ -19,7 +19,7 @@ class DbFunctions:
                 _key = key.split('.')[0]
                 sub_keys = key.replace(f'{_key}.', '').split('.')
                 key = _key
-                # logger.info(f'{sub_keys=}')
+                # logger.info(f'{key=}, {sub_keys=}')
             else:
                 sub_keys = []
 
@@ -39,6 +39,8 @@ class DbFunctions:
                         value, key
                     ) for key in value_keys if hasattr(value, key)
                 }
+                # if sub_keys:
+                #     logger.info(f'{value_db_kwargs=}')
 
                 string = self.calc_hash(
                     value,
@@ -51,27 +53,9 @@ class DbFunctions:
             _strings.append(string)
 
         hash_object = hashlib.sha512(''.join(_strings).encode('utf8'))
-        return hash_object.hexdigest()
+        digest = hash_object.hexdigest()
+        if digest == '2932afee7ee0905cf16602c4ce93373191948b8d561565629c88a492ce7bf4996b9ae2525cda8fdd438dfaa066924db0f8536d7912729f60ad21ae8186978701':
+            logger.info(f'{_strings=}')
+            logger.info(f'{db_kwargs=}')
 
-
-def test_calc_hash():
-
-    cl = DbFunctions()
-    cl.hash_strings = {}
-    cl.hash_strings['temp'] = ['info_hash', 'torrent.info_hash']
-
-    class TempCl: pass
-
-    tmp_cl = TempCl()
-
-    setattr(tmp_cl, 'hash_key', 'temp')
-
-    cl.calc_hash(
-        tmp_cl,
-        {
-            'info_hash': '213asdfasdf',
-            'torrent': {
-                'info_hash': 'avzxcvzxcvxc',
-            }
-        }
-    )
+        return digest

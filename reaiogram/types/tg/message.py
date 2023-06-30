@@ -35,10 +35,11 @@ class MergedTelegramMessage(
     MergedAiogramMessage,
 ):
 
-    def __init__(self, orm, message):
+    def __init__(self, orm, message, skip_orm=False):
 
         self.orm = orm
         self.unmerged = message
+        self.skip_orm = skip_orm
 
     async def merge_message(self):
 
@@ -58,5 +59,7 @@ class MergedTelegramMessage(
         )):
             await self._merge_aiogram_message()
 
-        await self._convert_to_orm()
+        if not self.skip_orm:
+            await self._convert_to_orm()
+
         return self

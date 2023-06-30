@@ -1,5 +1,6 @@
 import asyncio
 
+from aiogram.types import BufferedInputFile
 from aiogram.types.message import Message
 
 from config import secrets
@@ -20,8 +21,19 @@ from ....types.tg.message import MergedTelegramMessage
 
 async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
 
+    # await bot.download(
+    #     'BQACAgIAAx0EcZWc1wACOgxknBIx3r76vwo-TF_UVpzV36SOxwACVC0AAn2y4EjRjqRCQEigay8E',
+    #     '59286e3d01243e6d01fa82d37e36be4030bf0354'
+    # )
+    # await bot.download(
+    #     'BQACAgIAAx0EcZWc1wACXzpknV-VZMWmSP2OFiTvctRvOPjr5gACi0MAAo7s6UjYmDaND62iXi8E',
+    #     '7b9c6609f2bee84a2d7618191e797c252aae8baf'
+    # )
+    # logger.info(f'return dwn')
+    # return
+
     torrents = DjangoTorrentFile.objects.all()
-    logger.info(f'{torrents}')
+    logger.info(f'{len(torrents)=}')
 
     to_download = []
     for dj_torrent in torrents:
@@ -36,9 +48,15 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
         ):
             continue
 
+        # test
+        # to_download.append(dj_torrent)
+        # break
+
         pieces = DjangoTorrentPiece.objects.filter(torrent=dj_torrent).all()
 
         count_pieces = len(pieces)
+        logger.info(f'{dj_torrent=}, {count_pieces=}')
+
         if not count_pieces:
             to_download.append(dj_torrent)
             continue
@@ -61,59 +79,62 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
                 from_chat_id=dwn.message.chat.id,
                 message_id=dwn.message.id,
             )
-            # logger.info(f'{message=}')
+        else:
 
-            old_kwargs = {}
+            logger.info(f'torrent no have message where we can download data')
+            # mb need add variant with m2t
+            continue
 
-            for mu in TgMessage.db_keys:
-                if not hasattr(message, mu):
-                    continue
+        old_kwargs = {}
 
-                old_kwargs.update({
-                    mu: getattr(message, mu)
-                })
-                # setattr(old_message, mu, getattr(message, mu))
-            old_kwargs['chat'] = {}
-            old_kwargs['from_user'] = {}
+        for mu in TgMessage.db_keys:
+            if not hasattr(message, mu):
+                continue
 
             old_kwargs.update({
-                'date': message.forward_date,
-                'message_id': dwn.message.id,
-                'thread_id': dwn.message.thread_id
+                mu: getattr(message, mu)
+            })
+            # setattr(old_message, mu, getattr(message, mu))
+        old_kwargs['chat'] = {}
+        old_kwargs['from_user'] = {}
+
+        old_kwargs.update({
+            'date': message.forward_date,
+            'message_id': dwn.message.id,
+            'thread_id': dwn.message.thread_id
+        })
+
+        for cu in TgChat.db_keys:
+            try:
+                getattr(dwn.message.chat, cu)
+            except AttributeError:
+                continue
+
+            old_kwargs['chat'].update({
+                cu: getattr(dwn.message.chat, cu)
             })
 
-            for cu in TgChat.db_keys:
-                try:
-                    getattr(dwn.message.chat, cu)
-                except AttributeError:
-                    continue
+        for fu in TgUser.db_keys:
+            try:
+                getattr(dwn.message.from_user, fu)
+            except AttributeError:
+                continue
 
-                old_kwargs['chat'].update({
-                    cu: getattr(dwn.message.chat, cu)
-                })
+            old_kwargs['from_user'].update({
+                fu: getattr(dwn.message.from_user, fu)
+            })
 
-            for fu in TgUser.db_keys:
-                try:
-                    getattr(dwn.message.from_user, fu)
-                except AttributeError:
-                    continue
+        # logger.info(f'{old_kwargs=}')
 
-                old_kwargs['from_user'].update({
-                    fu: getattr(dwn.message.from_user, fu)
-                })
+        old_message = Message(**old_kwargs)
 
-            # logger.info(f'{old_kwargs=}')
+        merged_message = MergedTelegramMessage(
+            orm=dp.orm,
+            message=old_message,
+            skip_orm=True
+        )
 
-            old_message = Message(**old_kwargs)
-
-            merged_message = MergedTelegramMessage(
-                dp.orm, old_message
-            )
-            #
-            await merged_message.merge_message()
-
-        else:
-            merged_message = None
+        await merged_message.merge_message()
 
         torrent = TorrentFile(
             dp=dp,
@@ -136,4 +157,4 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
             torrent.download_some_pieces(version=6)
         )
 
-        # break
+    logger.info(f'end torrent downloading continue')

@@ -9,11 +9,18 @@ from config import settings
 from log import logger
 
 
-async def log_update(update: Update, **kwargs: Any) -> Any:
+async def log_update(
+        update: Update,
+        bot,
+        event_chat,
+        state,
+        raw_state,
+
+        **kwargs: Any
+) -> Any:
     logger.info(f'---------------------after_all_log----------------------------')
 
-    # logger.info(f'{kwargs=}')
-    # logger.info(f'{kwargs}')
+    logger.info(f'{kwargs=}')
     # logger.info(f'{dir(dp)}')
     # logger.info(f'{update=}')
 

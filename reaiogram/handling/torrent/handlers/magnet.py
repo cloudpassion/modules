@@ -1,6 +1,7 @@
 import asyncio
 
 from aiogram import F
+from aiogram.types import BufferedInputFile
 from aiogram.handlers import BaseHandler
 from aiogram.types import Message
 
@@ -46,22 +47,24 @@ class TorrentMagnetHandler(BaseHandler):
             magnet = text
 
         cl = DHTMakeTorrent()
-        data = await cl.get_from_http(magnet=magnet, info_hash=info_hash)
+        torrent_data = await cl.get_from_http(magnet=magnet, info_hash=info_hash)
 
-        if not data:
+        if not torrent_data:
             return
 
+        merged_message = data['merged_message'] or data['edtited_merged_message']
         torrent = TorrentFile(
             orm=dp.orm,
             bot=bot,
             dp=dp,
+            merged_message=merged_message,
         )
 
-        torrent.bytes_data = data
+        torrent.bytes_data = torrent_data
         torrent.parse()
 
         doc = BufferedInputFile(
-            data,
+            torrent_data,
             filename=f'{torrent.name}.torrent'
         )
 
@@ -69,7 +72,7 @@ class TorrentMagnetHandler(BaseHandler):
             chat_id=event.chat.id,
             document=doc,
             reply_to_message_id=event.message_id,
-            captiont='test'
+            caption='test'
         )
         #
         # torrent_status = dp.torrents[torrent.info_hash]

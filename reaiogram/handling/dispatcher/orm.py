@@ -1,19 +1,9 @@
-from aiogram.types import Message
-from aiogram.dispatcher.event.bases import SkipHandler
-
-from ...dispatcher.default import ExtraDispatcher
-
 from typing import Any, Dict, Awaitable, Callable
-
 from aiogram.types import Update
-from aiogram.dispatcher.event.bases import SkipHandler
 
-from config import settings
 from log import logger
 
-from ...utils.enums import UPDATE_TYPES, MESSAGE_UPDATE_TYPES
-from ...default.router import Router
-from ...default.bot import Bot
+from ...dispatcher.default import ExtraDispatcher
 
 
 class OrmDispatcher(ExtraDispatcher):
@@ -34,9 +24,9 @@ class OrmDispatcher(ExtraDispatcher):
             me = await bot.me()
             merged_bot = await bot.me_orm()
 
-            await self.orm.update_to_orm(
+            data.update(await self.orm.update_to_orm(
                 update=update, merged_bot=merged_bot,
-            )
+            ))
 
             return await handler(update, data)
 

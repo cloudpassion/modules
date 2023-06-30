@@ -30,8 +30,10 @@ from .download.version3 import TorrentDownloadVersion3
 from .download.version4 import TorrentDownloadVersion4
 from .download.version5 import TorrentDownloadVersion5
 from .download.version6 import TorrentDownloadVersion6
+from .download.version10 import TorrentDownloadVersion10
 
 from .grab.version5 import TorrentGrabVersion5
+from .grab.version5_1 import TorrentGrabVersion5_1
 
 
 class TorrentFile(
@@ -42,7 +44,10 @@ class TorrentFile(
     TorrentDownloadVersion5,
     TorrentDownloadVersion6,
 
+    TorrentDownloadVersion10,
+
     TorrentGrabVersion5,
+    TorrentGrabVersion5_1,
 ):
 
     async def download_torrent_from_tg(self, file_id=None):
@@ -57,8 +62,7 @@ class TorrentFile(
     async def save_to_django(self):
 
         # await self._default_merge_telegram()
-        await self._convert_to_orm()
-        # self.message = await self.message.from_orm()
+        await self._convert_to_orm(skip_to_db=True)
 
         await self.orm.update_one(
             data=self, db_class=DjangoTorrentFile
@@ -101,6 +105,7 @@ class TorrentFile(
         )
         logger.info(f'{len(select_all)=}')
         logger.info(f'{len(self.metadata.pieces)=}')
+        logger.info(f'{len(self.pieces)=}')
 
         if len(select_all) == len(self.metadata.pieces):
             await self.gen_pieces_from_django(select_all)
@@ -116,6 +121,16 @@ class TorrentFile(
         # logger.info(f'{len(self.metadata.pieces)=}')
 
         # l = 0
+        tasks = []
+        # torrent = TorrentFile(
+        #     orm=self.orm,
+        #     bot=self.bot,
+        #     dp=self.dp,
+        #     merged_message=None
+        # )
+        # torrent.bytes_data = self.bytes_data
+        # torrent.parse()
+
         for metadata_piece in self.metadata.pieces:
             # l += 1
             # logger.info(f'{metadata_piece=}')
@@ -129,14 +144,24 @@ class TorrentFile(
                 # logger.info(f'continue')
                 continue
 
-            await piece._deep_to_orm()
+            task = asyncio.create_task(
+                piece._convert_to_orm(skip_to_db=True, only_set=True)
+            )
+            tasks.append(task)
+            piece._to_db_torrent = torrent
+
+            # await piece._convert_to_orm(
+            #     skip_to_db=True, only_set=True
+            # )
 
             self.pieces.append(piece)
 
             # if l >= 10:
             #     break
 
-        # logger.info(f'{self.pieces=}')
+        await asyncio.gather(*tasks)
+
+        # quit()
         await self.bulk_pieces_to_orm()
 
     async def grab_torrent_from_telegram(
@@ -144,17 +169,23 @@ class TorrentFile(
             version
     ):
         if not self.pieces:
-            logger.info(f'all pieces already downloaded')
+            logger.info(f'no pieces')
             return
 
         root_dir = '/exm/wd1000blk/temp_tg'
         out_dir = f'{root_dir}/out'
 
-        if 5 <= version <= 6:
-            await self.grab_torrent_from_telegram_version5(
-                out_dir=out_dir,
-                version=version
-            )
+        if isinstance(version, int):
+            if 5 <= version <= 6:
+                await self.grab_torrent_from_telegram_version5(
+                    out_dir=out_dir,
+                    version=version
+                )
+        else:
+            if version == '5_1':
+                await self.grab_torrent_from_telegram_version5_1(
+                    out_dir=out_dir,
+                )
 
     async def download_some_pieces(
             self,
@@ -164,7 +195,7 @@ class TorrentFile(
         tasks = []
 
         if not self.pieces:
-            logger.info(f'all pieces already downloaded')
+            logger.info(f'not pieces')
             return
 
         logger.info(f'mb download some pieces')
@@ -193,11 +224,13 @@ class TorrentFile(
             #         self._download_some_pieces_version6()
             #     )
             # )
-            await self._download_some_pieces_version6()
-
-        # await asyncio.gather(*tasks)
+            tasks = await self._download_some_pieces_version6()
 
         logger.info(f'dwn complete: {self.info_hash=}, {version=}')
+
+        await asyncio.gather(*tasks)
+
+        logger.info(f'tasks complete: {self.info_hash=}, {version=}')
 
         torrent_status = self.dp.torrents[self.info_hash]
         torrent_status.in_work = False
@@ -245,15 +278,6 @@ class TorrentPiece(
             metadata=torrent.metadata,
             peer_id=torrent.peer_id,
         )
-
-    # async def download_file(self):
-    #
-    #     if self.bytes_data:
-    #         return
-    #
-    #     self.bytes_data = await self.bot.download(
-    #         file=self.message.document.file_id,
-    #     )
 
     async def save_to_django(self):
 

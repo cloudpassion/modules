@@ -31,8 +31,8 @@ from .setup import (
     API_BASE_URL, API_FILE_URL,
 )
 
-from .on_startup_local import _run_on_startup
-from .on_shutdown_local import _run_on_shutdown
+from .on_startup import _run_on_startup
+from .on_shutdown import _run_on_shutdown
 
 
 async def default_loader():

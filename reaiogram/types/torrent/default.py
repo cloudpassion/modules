@@ -43,7 +43,10 @@ class DefaultTorrent(
         self.orm.hash_strings[self.hash_key] = TORRENT_HASH_KEYS
 
         self.message = merged_message
-        self.info = merged_message.text or merged_message.caption
+        if merged_message:
+            self.info = merged_message.text or merged_message.caption or ''
+        else:
+            self.info = ''
 
         self.download_sem = asyncio.Semaphore(2)
         self.download_each_piece_sem = asyncio.Semaphore(10)

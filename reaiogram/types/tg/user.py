@@ -15,10 +15,11 @@ class MergedTelegramUser(
     MergedAiogramUser,
 ):
 
-    def __init__(self, orm, user):
+    def __init__(self, orm, user, skip_orm=False):
 
         self.orm = orm
         self.unmerged = user
+        self.skip_orm = skip_orm
 
     async def merge_user(self):
 
@@ -38,5 +39,7 @@ class MergedTelegramUser(
         )):
             await self._merge_aiogram_user()
 
-        await self._convert_to_orm()
+        if not self.skip_orm:
+            await self._convert_to_orm()
+
         return self

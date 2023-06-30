@@ -11,12 +11,14 @@ class MergedTelegramUpdate(
 
     def __init__(
             self, orm, update, merged_bot,
+            skip_orm=False,
             **kwargs,
     ):
 
         self.orm = orm
         self.unmerged = update
         self.bot = merged_bot
+        self.skip_orm = skip_orm
 
         # optional any of message from update
         # for key, value in kwargs.items():
@@ -41,5 +43,7 @@ class MergedTelegramUpdate(
         )):
             await self._merge_aiogram_update()
 
-        await self._convert_to_orm()
+        if not self.skip_orm:
+            await self._convert_to_orm()
+
         return self

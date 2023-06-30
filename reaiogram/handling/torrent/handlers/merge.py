@@ -22,13 +22,13 @@ class TorrentMergeHandler(BaseHandler):
 
         torrent: TorrentFile = data.get('torrent')
 
-        torrent_status = dp.torrents[torrent.info_hash]
-        torrent_status.in_work = True
-
         if not torrent:
             return
 
-        await torrent.grab_torrent_from_telegram(version=6)
+        torrent_status = dp.torrents[torrent.info_hash]
+        torrent_status.in_work = True
+
+        await torrent.grab_torrent_from_telegram(version='5_1')
 
         torrent_status.in_work = False
 

@@ -14,12 +14,11 @@ from ....default.bot import Bot
 async def update_to_orm(
         handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
         event,
-        #Message,
         data: Dict[str, Any]
 ) -> Any:
 
     # logger.info(f'-----------------update_to_orm-------------------------')
-    logger.info(f'---------------------now-ret---------------------------')
+    # logger.info(f'---------------------now-ret---------------------------')
 
     return await handler(event, data)
     # return await handler(event, data)
@@ -48,7 +47,7 @@ async def update_to_orm(
 
 def register_update_to_orm_router(router):
 
-    orm_router = Router(name='orm_router')
+    orm_router = Router(name='orm_router_disabled')
 
     for msg_type in UPDATE_TYPES:
         # logger.info(f'msg:{msg_type=}')

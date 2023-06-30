@@ -10,7 +10,7 @@ DEFAULT_FILE_KEYS = (
     'file_size',
     'thumbnail',
 
-    'chat',
+    # 'chat',
 
     'md5',
     'path',
@@ -41,11 +41,11 @@ class AbstractFile(ExtraBasedModel):
     # thumbnail = models.BigIntegerField(null=True, blank=True)
 
     # tg help
-    chat = models.ForeignKey(
-        'TgChat',
-        on_delete=models.DO_NOTHING,
-        null=True, blank=True,
-    )
+    # chat = models.ForeignKey(
+    #     'TgChat',
+    #     on_delete=models.DO_NOTHING,
+    #     null=True, blank=True,
+    # )
     # contact = models.ForeignKey(
     #     'TgUser',
     #     on_delete=models.DO_NOTHING,

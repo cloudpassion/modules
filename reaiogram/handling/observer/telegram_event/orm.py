@@ -38,4 +38,5 @@ async def save_update(
 
 
 def register_save_update_telegram_event_observer(dp):
-    dp.update.register(save_update)
+    return
+    # dp.update.register(save_update)
