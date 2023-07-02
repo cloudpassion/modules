@@ -42,17 +42,18 @@ async def default_loader():
     # session = AiohttpSession(proxy=("protocol://host:port", auth))
     # proxy = ("protocol://host:port", auth)
     # "protocol://user:password@host:port"
-    api_session = AiohttpSession(
-        # proxy=f'http://{secrets.proxy.http.ip}:{secrets.proxy.http.port}',
-        proxy=None,
-        api=TelegramAPIServer(
-            base=API_BASE_URL,
-            file=API_FILE_URL,
-        ),
-    )
 
     bots = []
     for api_token in API_TOKENS:
+
+        api_session = AiohttpSession(
+            # proxy=f'http://{secrets.proxy.http.ip}:{secrets.proxy.http.port}',
+            proxy=None,
+            api=TelegramAPIServer(
+                base=API_BASE_URL,
+                file=API_FILE_URL,
+            ),
+        )
         bot = Bot(
             token=api_token,
             parse_mode=enums.ParseMode.HTML,

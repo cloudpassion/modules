@@ -65,6 +65,36 @@ class TorrentGrabVersion5(
     AbstractMergedTelegram
 ):
 
+    async def check_complete_for_grab5(self):
+
+        redis_hashes = []
+        missing_pieces = set(self.metadata.pieces)
+
+        for torrent_piece in self.pieces:
+
+            # continue
+
+            dj: DjangoTorrentPiece = await torrent_piece.from_orm()
+
+            info_hash = torrent_piece.info_hash
+            redis = self.redis.get(info_hash)
+            if dj.message or dj.resume_data or redis:
+                if redis:
+                    redis_hashes.append(info_hash)
+
+                item = [
+                    p for p in missing_pieces if (
+                            p.hash == from_hex_to_bytes(torrent_piece.info_hash)
+                    )
+                ][0]
+                # index = missing_pieces.index()
+                # del missing_pieces[index]
+                missing_pieces.remove(item)
+                # logger.info(f'piece already downloaded')
+                # continue
+
+        return missing_pieces
+
     async def grab_torrent_from_telegram_version5(
             self,
             out_dir,
@@ -268,7 +298,8 @@ class TorrentGrabVersion5(
             if not some_txt_bytes:
                 continue
 
-            logger.info(f'{some_txt_bytes=}')
+            # logger.info(f'{some_txt_bytes=}')
+
             # while t < 24:
             #     t += 1
             #     logger.info(f'skip {t=}')

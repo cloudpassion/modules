@@ -36,7 +36,10 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
     logger.info(f'{len(torrents)=}')
 
     to_download = []
-    for dj_torrent in torrents:
+    for dj_torrent in reversed(torrents):
+
+        # if len(to_download) >= 2:
+        #     break
 
         if dj_torrent.info_hash in (
                 '3f6cca286969bd029d6096023bc90fc3fdbc2eae',
@@ -148,6 +151,7 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
         torrent_status = TorrentStatus()
         dp.torrents[torrent.info_hash] = torrent_status
 
+        torrent_status.set_torrent(torrent)
         torrent_status.in_work = True
         #wait torrent.save_to_django()
 

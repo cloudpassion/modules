@@ -76,30 +76,41 @@ class TorrentDownloadVersion6(
         # if not missing_pieces:
         #     return
         #
-        tasks = []
-        task = asyncio.create_task(
+        if redis_hashes:
+            await self._mon_completed_and_upload_version6(
+                set(),
+                redis_hashes
+            )
+
+            logger.info(f'pre redis complete: {self.info_hash}')
+
+        asyncio.create_task(
             self._mon_completed_and_upload_version6(
                 missing_pieces,
-                redis_hashes,
+                [],
+                set_status=True
             )
         )
-        tasks.append(task)
 
-        # while missing_pieces:
+        # asyncio.create_task(
+        #     self.download(
+        #             missing_pieces,
+        #             to_bytes=True,
+        #             progress_func=self.dp._pick_surge_progress
+        #         )
+        # )
 
-        # task = asyncio.create_task(
         await self.download(
-                missing_pieces,
-                to_bytes=True,
-            )
-
-        return tasks
-        # await asyncio.gather(*tasks)
+            missing_pieces,
+            to_bytes=True,
+            progress_func=self.dp._pick_surge_progress
+        )
 
     async def _mon_completed_and_upload_version6(
             self,
             missing_pieces,
             redis_hashes,
+            set_status=False,
     ):
 
         logger.info(f'{len(missing_pieces)=}')
@@ -129,16 +140,18 @@ class TorrentDownloadVersion6(
                 #             f'{dt_count=}\n'
                 #             f'{ms_count=}')
 
-                for dt in [self.data, redis_hashes]:
+                for dt in [redis_hashes, self.data]:
+
+                    if not dt:
+                        continue
 
                     try:
                         h = dt.pop()
                         break
                     except IndexError:
-                        await asyncio.sleep(1)
-                        continue
+                        pass
                 else:
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(10)
                     continue
 
                 ms_p = [
@@ -146,6 +159,9 @@ class TorrentDownloadVersion6(
                             p.hash == from_hex_to_bytes(h)
                     )
                 ]
+                if not ms_p:
+                    continue
+
                 # logger.info(f'{ms_p=}')
                 try:
                     missing_pieces.remove(ms_p[0])
@@ -182,7 +198,7 @@ class TorrentDownloadVersion6(
 
                 pieces_to_upload.append(torrent_piece)
 
-                if size + length + len(f'{text}\n') >= 20971520:
+                if size + length + len(f'{text}\n') + 128 >= 20971520:
                 # if size + piece_size >= 52428800:
                     break
 
@@ -192,18 +208,29 @@ class TorrentDownloadVersion6(
             if not pieces_to_upload:
                 continue
 
-            # tm_start = time.time()
-            # task = \
+            # await self._mon_upload_task_version6(
+            #         pieces_to_upload,
+            #         hashes,
+            #         text,
+            #         # missing_pieces,
+            #         # tm_start,
+            #     )
             task = asyncio.create_task(
-                self._mon_upload_task_version6(
-                    pieces_to_upload,
-                    hashes,
-                    text,
-                    # missing_pieces,
-                    # tm_start,
-                )
+               self._mon_upload_task_version6(
+                   pieces_to_upload,
+                   hashes,
+                   text,
+               )
             )
             tasks.append(task)
+
+            # await self._mon_upload_task_version6(
+            #     pieces_to_upload,
+            #     hashes,
+            #     text,
+            #     # missing_pieces,
+            #     # tm_start,
+            # )
 
             # del pieces_to_upload
             # del data
@@ -216,8 +243,13 @@ class TorrentDownloadVersion6(
             #     for stat in top_stats[:10]:
             #         logger.info(f'{stat}')
 
-        # await asyncio.gather(*tasks)
-        # return tasks
+        logger.info(f'start tasks: {self.info_hash=}')
+        await asyncio.gather(*tasks)
+        logger.info(f'tasks complete: {self.info_hash=}')
+
+        if set_status:
+            torrent_status = self.dp.torrents[self.info_hash]
+            torrent_status.in_work = False
 
     async def _mon_upload_task_version6(
             self,
@@ -230,11 +262,17 @@ class TorrentDownloadVersion6(
         # TODO check file name
         caption = f'{self.info_hash}_{hashes[0]}'
 
+        for h in hashes:
+            if not self.redis.get(h):
+                logger.info(f'redown')
+                return
+
         piece_file = BufferedInputFile(
             b''.join([self.redis.get(h) for h in hashes]),
             filename=f'{caption}.data'
         )
         setattr(piece_file, 'prefix', 'piece')
+
         txt_file = BufferedInputFile(
             text.encode('utf8'),
             filename=f'{caption}.txt'
@@ -243,7 +281,8 @@ class TorrentDownloadVersion6(
 
         bt = secrets.bt.chat
 
-        for input_file in [txt_file, piece_file, ]:
+        kwargs_data = {}
+        for input_file in [piece_file, txt_file, ]:
             if input_file is txt_file:
                 chat_id = bt.txt.id
                 thread_id = bt.txt.thread_id
@@ -254,28 +293,29 @@ class TorrentDownloadVersion6(
             upload_bot = await self.dp.get_upload_bot()
             while True:
                 try:
-
                     # async with UPLOAD_SEM and UPLOAD_AT_MINUTE and UPLOAD_AT_SECOND:
-                    async with (
-                            self.dp.upload_sem
-                        ) and (
-                            self.dp.upload_at_minute
-                        ) and (
-                            self.dp.upload_at_second
-                    ):
-                        message = await upload_bot.send_document(
-                            chat_id=chat_id,
-                            message_thread_id=thread_id,
-                            caption=self.info_hash,
-                            document=input_file,
-                        )
-                        if not message:
-                            raise Exception('no message')
+                    wu = self.dp.wait_upload
+                    while wu:
+                        await asyncio.sleep(wu)
+                        wu = self.dp.wait_upload
+                        # logger.info(f'{wu=}')
 
-                    kwargs_data = await self.orm.message_to_orm(
+                    async with self.dp.upload_at_minute:
+                        async with self.dp.upload_sem:
+                            message = await upload_bot.send_document(
+                                chat_id=chat_id,
+                                message_thread_id=thread_id,
+                                caption=self.info_hash,
+                                document=input_file,
+                            )
+
+                    if not message:
+                        raise Exception('no message')
+
+                    kwargs_data.update(await self.orm.message_to_orm(
                         message,
                         prefix=f'{input_file.prefix}'
-                    )
+                    ))
                     await self.dp.put_upload_bot(upload_bot)
                     break
                 except (
@@ -285,16 +325,20 @@ class TorrentDownloadVersion6(
                         tm = int(re.findall('Retry in (.*?) seconds', f'{exc}')[0])
                     except Exception:
                         tm = 50
+
+                    self.dp.wait_upload = tm
                     # logger.info(f'sleep {tm=}')
                     await asyncio.sleep(tm+random.randint(10, 20))
+                    self.dp.wait_upload = 0
+
                 except TelegramNetworkError as exc:
-                    for exc_text in (
-                        'HTTP Client says - Request timeout error',
-                        'no message',
-                    ):
-                        if exc_text in f'{exc}':
-                            continue
-                            # upload_bot = await self.dp.new_bot(close=True)
+                    # for exc_text in (
+                    #     'Request timeout error',
+                    #     'no message',
+                    # ):
+                    #     if exc_text in f'{exc}':
+                    #         continue
+                    #         # upload_bot = await self.dp.new_bot(close=True)
 
                     upload_bot = await self.dp.new_upload_bot(
                         bot=upload_bot,
@@ -305,7 +349,12 @@ class TorrentDownloadVersion6(
                     # self.upload_bot = self.new_bot(close=True)
                     await asyncio.sleep(30)
 
-                await asyncio.sleep(0)
+                    upload_bot = await self.dp.new_upload_bot(
+                        bot=upload_bot,
+                    )
+
+                # logger.info(f'still upload: {self.info_hash}')
+                await asyncio.sleep(1)
 
         merged_message = kwargs_data['piece_merged_message']
         for uploaded_piece in pieces_to_upload:
@@ -324,7 +373,6 @@ class TorrentDownloadVersion6(
             await uploaded_piece.update_orm()
 
             from_orm = await uploaded_piece.from_orm()
-
             while not from_orm:
                 from_orm = await merged_message.from_orm()
                 await asyncio.sleep(30)

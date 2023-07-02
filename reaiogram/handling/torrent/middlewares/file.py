@@ -79,6 +79,7 @@ async def parse_message_for_torrents(
 
     data['torrent'] = torrent
 
+    torrent_status.set_torrent(torrent)
     torrent_status.in_work = False
 
     return await handler(message, data)

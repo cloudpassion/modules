@@ -2,6 +2,7 @@ import asyncio
 
 from aiogram import F
 from aiogram.handlers import BaseHandler
+from aiogram.types import Message
 
 from config import secrets
 from log import logger
@@ -24,6 +25,15 @@ class TorrentDownloadHandler(BaseHandler):
 
         if not torrent:
             return
+
+        self.event: Message
+
+        await self.event.answer(
+            text=f'{torrent.name}\n'
+                 f'{torrent.comment}\n'
+                 f'{torrent.publisher_url}\n'
+                 f'{torrent.info_hash}'
+        )
 
         torrent_status = dp.torrents[torrent.info_hash]
         torrent_status.in_work = True

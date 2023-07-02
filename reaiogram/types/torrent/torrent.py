@@ -172,6 +172,11 @@ class TorrentFile(
             logger.info(f'no pieces')
             return
 
+        ms_ps = await self.check_complete_for_grab5()
+        if ms_ps:
+            logger.info(f'{len(ms_ps)=}')
+            return
+
         root_dir = '/exm/wd1000blk/temp_tg'
         out_dir = f'{root_dir}/out'
 
@@ -191,8 +196,6 @@ class TorrentFile(
             self,
             version
     ):
-
-        tasks = []
 
         if not self.pieces:
             logger.info(f'not pieces')
@@ -219,21 +222,11 @@ class TorrentFile(
             await self._download_some_pieces_version5()
 
         if version == 6:
-            # tasks.append(
-            #     asyncio.create_task(
-            #         self._download_some_pieces_version6()
-            #     )
+            # asyncio.create_task(
+            await self._download_some_pieces_version6()
             # )
-            tasks = await self._download_some_pieces_version6()
 
-        logger.info(f'dwn complete: {self.info_hash=}, {version=}')
-
-        await asyncio.gather(*tasks)
-
-        logger.info(f'tasks complete: {self.info_hash=}, {version=}')
-
-        torrent_status = self.dp.torrents[self.info_hash]
-        torrent_status.in_work = False
+        logger.info(f'mb dwn started {self.info_hash=}')
 
     async def bulk_pieces_to_orm(self):
         return await self.orm.bulk_add(
