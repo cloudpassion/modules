@@ -84,8 +84,12 @@ class TGxHotPicks(
 
             href = soup_item.find('a').get('href')
             link = f'https://{self.tgx_host}/{href}'
-
-            id = int(href.split('id=')[-1])
+            
+            try:
+                id = int(href.split('id=')[-1])
+            except Exception as exc:
+                logger.info(f'{exc=}')
+                id = int(href.split('id=')[-1].split('&')[0])
 
             name = soup_item.find('img').get('alt')
 
