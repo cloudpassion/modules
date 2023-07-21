@@ -91,6 +91,9 @@ class TGxHotPicks(
                 logger.info(f'{exc=}')
                 id = int(href.split('id=')[-1].split('&')[0])
 
+            with open('test.html', 'wb') as hw:
+                hw.write(resp.content)
+
             name = soup_item.find('img').get('alt')
 
             image = soup_item.find('img').get('data-src')
