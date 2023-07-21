@@ -106,7 +106,7 @@ class TGxHotPicks(
                     continue
                 else:
                     logger.info(f'check this')
-                    raise
+                    raise Exception
             # logger.info(f'{splitted_name=}')
 
             if cat != 3:
