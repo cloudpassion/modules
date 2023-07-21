@@ -70,8 +70,8 @@ class TGxHotPicks(
             logger.info(f'{resp.status=}')
             return []
 
-        # with open('resp.html', 'wb') as wb:
-        #     wb.write(resp.content)
+        with open('resp.html', 'wb') as wb:
+            wb.write(resp.content)
 
         soup = BeautifulSoup(resp.content.decode('latin-1'), 'lxml')
         soup_items = soup.find_all('div', {'class': 'hotpicks'})
@@ -80,6 +80,7 @@ class TGxHotPicks(
         for soup_item in soup_items:
             # logger.info(f'{soup_item=}')
 
+            # break
             item = TgxHotPicksItem()
 
             href = soup_item.find('a').get('href')
@@ -91,14 +92,21 @@ class TGxHotPicks(
                 logger.info(f'{exc=}')
                 id = int(href.split('id=')[-1].split('&')[0])
 
-            with open('test.html', 'wb') as hw:
-                hw.write(resp.content)
+            #with open('test.html', 'wb') as hw:
+            #    hw.write(resp.content)
 
             name = soup_item.find('img').get('alt')
 
             image = soup_item.find('img').get('data-src')
 
-            splitted_name = name.split('.')
+            try:
+                splitted_name = name.split('.')
+            except Exception:
+                if 'Torrentgalaxy&amp;utm_medium=partner' in f'{soup_item}':
+                    continue
+                else:
+                    logger.info(f'check this')
+                    raise
             # logger.info(f'{splitted_name=}')
 
             if cat != 3:
