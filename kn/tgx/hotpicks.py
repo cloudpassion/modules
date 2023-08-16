@@ -85,7 +85,11 @@ class TGxHotPicks(
 
             href = soup_item.find('a').get('href')
             link = f'https://{self.tgx_host}/{href}'
-            
+
+            if 'hub.php' in href:
+                logger.info(f'hub in {href=}')
+                continue
+
             try:
                 id = int(href.split('id=')[-1])
             except Exception as exc:
