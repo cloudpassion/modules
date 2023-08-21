@@ -1,0 +1,6 @@
+media-libs/freetype cleartype_hinting harfbuzz
+media-libs/mesa -gbm -egl -gles2 -llvm classic dri3
+media-libs/libsdl2 video sound CPU_FLAGS_X86: *
+media-libs/gd CPU_FLAGS_X86: *
+
+media-libs/vips exif -fftw -fits imagemagick jpeg png -svg tiff webp

@@ -1,0 +1,2 @@
+app-misc/ca-certificates cacert
+app-misc/mime-types nginx

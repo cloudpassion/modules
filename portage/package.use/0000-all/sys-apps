@@ -1,0 +1,13 @@
+sys-apps/man-db 
+sys-apps/hwids -udev net usb
+sys-apps/openrc netifrc 
+sys-apps/shadow su
+sys-apps/busybox -pam static
+sys-apps/texinfo standalone
+sys-apps/net-tools arp hostname
+sys-apps/dbus user-session
+sys-apps/elfix ptpax xtpax
+sys-apps/util-linux -su magic
+sys-apps/texinfo -standalone
+sys-apps/systemd pkcs11
+#sys-apps/iproute2 -minimal

@@ -1,0 +1,3 @@
+net-analyzer/wireshark zlib plugins
+net-analyzer/tcpdump samba smi
+net-analyzer/nmap libssh2 ncat nping nse LUA_SINGLE_TARGET: lua5-3
