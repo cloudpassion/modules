@@ -90,6 +90,10 @@ class TGxHotPicks(
                 logger.info(f'hub in {href=}')
                 continue
 
+            if 'sub.php' in href:
+                logger.info(f'hub in {href=}')
+                continue
+
             try:
                 id = int(href.split('id=')[-1])
             except Exception as exc:
