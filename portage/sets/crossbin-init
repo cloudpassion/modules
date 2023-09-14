@@ -1,0 +1,50 @@
+# rebuild all cross
+#emerge cross-x86_64-s5-linux-gnu/binutils cross-x86_64-s5-linux-gnu/gcc cross-x86_64-s5-linux-gnu/linux-headers cross-x86_64-s5-linux-gnu/glibc cross-x86_64-s5-linux-gnu/gdb
+
+# emerge-x86_64-s5-linux-gnu sys-libs/glibc
+
+# emerge-x86_64-s5-linux-gnu sys-devel/gcc
+
+# libudev
+# dev-libs/gobject-introspection
+
+## libpbf
+## dev-util/bpftool
+
+## cmake
+
+# systemd
+# emerge--x86_64-s5-linux-gnu --newuse --with-bdeps=y @world
+
+# with 
+# -G --binpkg-respect-use=n
+#sys-apps/pkgcore
+#sys-apps/portage
+#dev-lang/python
+
+# rebuild
+#app-alternatives/bzip2
+#app-arch/bzip2
+
+# with 
+# -G --binpkg-respect-use=n
+#sys-devel/gcc
+
+## rebuild boehm-gc
+##deb-libs/boehm-gc
+
+## rebuild cross/gcc
+
+# rebuild
+#sys-devel/gcc
+
+# revdep-rebuild
+
+
+# rebuild
+#sys-libs/glibc
+
+#
+#sys-libs/binutils
+
+#sys-apps/pkgcore

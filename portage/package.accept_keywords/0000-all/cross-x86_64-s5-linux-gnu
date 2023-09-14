@@ -1,0 +1,5 @@
+cross-x86_64-s5-linux-gnu/binutils amd64
+cross-x86_64-s5-linux-gnu/gcc amd64
+cross-x86_64-s5-linux-gnu/linux-headers amd64
+cross-x86_64-s5-linux-gnu/glibc amd64
+cross-x86_64-s5-linux-gnu/gdb amd64

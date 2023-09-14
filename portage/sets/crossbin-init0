@@ -1,0 +1,4 @@
+# with 
+# -G --binpkg-respect-use=n
+app-alternatives/bzip2
+app-arch/bzip2

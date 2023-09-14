@@ -1,4 +1,4 @@
-dev-libs/libpcre recursion-limit static-libs
+dev-libs/libpcre recursion-limit static-libs pcre32 pcre16 jit
 dev-libs/libpcre2 pcre32 pcre16 recursion-limit jit
 dev-libs/apr-util
 dev-libs/libverto libev

@@ -1,3 +1,3 @@
-sys-auth/polkit introspection
+#sys-auth/polkit introspection
 sys-auth/pambase nullok sha512 mktemp
 sys-auth/pam_mktemp prevent-removal

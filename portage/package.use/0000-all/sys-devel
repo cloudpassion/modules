@@ -1,4 +1,4 @@
-sys-devel/binutils multitarget plugins gold
-sys-devel/gcc cet fortran objc objc-gc vtv graphite objc++ openmp pch sanitize ssp nptl go
-cross-x86_64-s5-linux-gnu/gcc cet fortran objc objc-gc vtv graphite objc++ openmp pch sanitize ssp nptl go
+sys-devel/binutils multitarget plugins
+sys-devel/gcc objc objc-gc -vtv graphite objc++ openmp -pch -sanitize -ssp nptl go -default-stack-clash-protection -default-znow
+sys-devel/llvm binutils-plugin libffi ncurses xml
 

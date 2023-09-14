@@ -1,4 +1,0 @@
-# move app-emulation/docker app-containers/docker
-app-containers/docker apparmor aufs btrfs cli container-init device-mapper overlay seccomp hardened
-# move app-emulation/containerd app-containers/containerd
-app-containers/containerd btrfs apparmor device-mapper

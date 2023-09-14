@@ -1,1 +1,6 @@
 app-portage/portage-utils openmp qmanifest qtegrity
+app-portage/gemato pretty-log
+
+
+sys-apps/portage -* native-extensions rsync-verify python_targets_python3_10 xattr
+app-portage/gentoolkit -* python_targets_python3_10

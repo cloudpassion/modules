@@ -1,0 +1,4 @@
+dev-db/postgresql:14
+dev-db/mariadb-connector-c
+dev-python/docker 
+app-editors/nano

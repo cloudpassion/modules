@@ -1,1 +1,1 @@
-x11-base/xorg-server xorg
+x11-base/xorg-server xorg -minimal

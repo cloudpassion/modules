@@ -1,0 +1,1 @@
+app-emulation/qemu alsa fuse gtk io-uring iscsi multipath nfs opengl plugins pulseaudio python spice ssh usb usbredir vde virgl virtfs vte QEMU_SOFTMMU_TARGETS: * QEMU_USER_TARGETS: *

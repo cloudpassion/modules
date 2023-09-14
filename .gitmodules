@@ -1,0 +1,6 @@
+[submodule "portage/patches/clearlinux-pkgs"]
+	path = portage/patches/clearlinux-pkgs
+	url = https://github.com/clearlinux-pkgs/linux.git
+[submodule "portage/patches/gentoo_ACS_override_patch"]
+	path = portage/patches/gentoo_ACS_override_patch
+	url = https://github.com/feniksa/gentoo_ACS_override_patch.git

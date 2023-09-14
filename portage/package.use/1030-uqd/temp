@@ -1,0 +1,4 @@
+#dev-lang/python -tk gdbm
+#sys-apps/util-linux -* build cramfs hardlink logger ncurses pam readline suid nls su python3_11
+#app-arch/libarchive -lz4
+#sys-apps/shadow -su

@@ -1,0 +1,5 @@
+cross-x86_64-s5-linux-gnu/binutils multilib multitraget plugins gold
+#cross-x86_64-s5-linux-gnu/linux-headers multilib -selinux multilib
+cross-x86_64-s5-linux-gnu/glibc multilib -selinux -libraries multilib systemd -ssp
+cross-x86_64-s5-linux-gnu/gcc multilib cxx -selinux -boundschecking -d -gcj -gtk -libffi -mudflap -objc -objc++ -objc-gc -sanitize multilib default-stack-clash-protection default-znow vtv
+cross-x86_64-s5-linux-gnu/gdb multitarget source-highlight
