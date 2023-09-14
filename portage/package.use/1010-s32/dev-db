@@ -1,5 +1,0 @@
-dev-db/postgresql llvm python server tcl uuid
-dev-db/mariadb backup columnstore cracklib extraengine galera innodb-lz4 innodb-lzo jdbc latin1 numa odbc oqgraph perl profiling rocksdb s3 server sphinx sst-mariabackup sst-rsync
-dev-db/redis LUA_SINGLE_TARGET: -* lua5-1
-dev-db/mysql server cjk
-

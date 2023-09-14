@@ -1,4 +1,0 @@
-sys-devel/binutils multitarget plugins
-sys-devel/gcc objc objc-gc -vtv graphite objc++ openmp -pch -sanitize -ssp nptl go -default-stack-clash-protection -default-znow
-sys-devel/llvm binutils-plugin libffi ncurses xml
-

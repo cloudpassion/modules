@@ -1,7 +1,0 @@
-net-misc/tigervnc drm opengl xorgmodule server dri3
-net-misc/curl http2 rtmp ssh telnet websockets hsts tftp CURL_SSL: -* openssl
-net-misc/openssh pie scp sctp
-net-misc/iperf sctp
-net-misc/dropbear -* zlib multicall shadow
-net-misc/tigervnc -* server xinerama dri3 drm opengl viewer
-

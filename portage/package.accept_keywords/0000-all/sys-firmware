@@ -1,4 +1,0 @@
-sys-firmware/edk2-ovmf ~amd64
-sys-firmware/nvidia-firmware ~amd64
-sys-firmware/b43-firmware ~amd64
-

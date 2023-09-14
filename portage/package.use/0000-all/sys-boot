@@ -1,1 +1,0 @@
-sys-boot/grub device-mapper fonts mount efiemu GRUB_PLATFORMS: * -coreboot -loongson -qemu-mips -uboot

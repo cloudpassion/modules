@@ -1,2 +1,0 @@
-media-video/ffmpeg X alsa bzip2 dav1d encode gnutls gpl iconv lzma network openssl postproc pulseaudio threads truetype zlib
-media-video/handbrake -fdk

@@ -1,2 +1,0 @@
-net-firewall/firewalld iptables nftables
-net-firewall/nftables json python xtables

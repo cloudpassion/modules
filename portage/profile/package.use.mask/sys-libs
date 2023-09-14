@@ -1,2 +1,0 @@
-sys-libs/libxcrypt -system -split-usr
-sys-libs/glibc -crypt -cet

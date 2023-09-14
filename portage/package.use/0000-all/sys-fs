@@ -1,8 +1,0 @@
-sys-fs/eudev -hwdb kmod
-#introspection kmod
-
-sys-fs/lvm2 thin lvm2create_initrd lvm
-
-sys-fs/cryptsetup ssh
-
-sys-fs/e2fsprogs tools

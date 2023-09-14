@@ -1,2 +1,0 @@
-net-proxy/privoxy brotli client-tags compression editor -extended-host-patterns extended-statistics external-filters -fuzz graceful-termination -lfs -mbedtls png-images sanitize toggle tools whitelists
-net-proxy/dante upnp

@@ -1,5 +1,0 @@
-#dev-libs/openssl ~amd64
-#dev-libs/libressl ~amd64
-dev-libs/gobject-introspection ~amd64
-dev-libs/nettle ~amd64
-

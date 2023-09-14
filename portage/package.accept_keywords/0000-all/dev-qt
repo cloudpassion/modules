@@ -1,9 +1,0 @@
-dev-qt/qtwayland ~amd64
-dev-qt/qtbase ~amd64
-dev-qt/qtdeclarative ~amd64
-dev-qt/qtshadertools ~amd64
-dev-qt/qtcore ~amd64
-dev-qt/qtgui ~amd64
-dev-qt/qtdbus ~amd64
-dev-qt/qtnetwork ~amd64
-dev-qt/* ~amd64

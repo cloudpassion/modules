@@ -1,3 +1,0 @@
-app-editors/vim X perl -debug lua -minimal python ruby tcl terminal LUA_SINGLE_TARGET: -* luajit
-app-editors/nano minimal
-app-editors/vim-core -minimal
