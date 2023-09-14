@@ -1,1 +1,0 @@
-app-editors/vim -minimal acl crypt X lua python ruby perl LUA_SINGLE_TARGET: -* luajit

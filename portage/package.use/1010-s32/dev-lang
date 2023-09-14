@@ -1,2 +1,0 @@
-dev-lang/php apache2 cgi cli inifile json mhash mysqli session simplexml sockets webp xmlreader xmlrpc xmlwriter xpm xslt zip fpm exif imap pdo bcmath ctype filter fileinfo lmdb opcache pcntl phar tokenizer xmlreader xslt xmlwriter ffi session-mm snmp soap spell odbc iodbc
-dev-lang/lua deprecated

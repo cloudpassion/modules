@@ -1,2 +1,0 @@
-sys-apps/util-linux -cryptsetup build -udev
-sys-apps/systemd -pkcs11

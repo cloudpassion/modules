@@ -1,3 +1,0 @@
-net-fs/samba -gpg client json profiling-data python quota syslog winbind
-net-fs/cifs-utils ads
-net-fs/nfs-utils libmount nfsdcld nfsidmap nfsv4 nfsv41 tcpd

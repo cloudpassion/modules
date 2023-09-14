@@ -1,2 +1,0 @@
-www-servers/apache split-usr suexec-caps suexec suexec-syslog APACHE2_MPMS: -* APACHE2_MODULES: * 
-www-servers/nginx http http-cache http2 aio rtmp -pcre2 LUA_SINGLE_TARGET: -*  luajit NGINX_MODULES_HTTP: * -naxsi -mogilefs -auth_ldap -mogilefs NGINX_MODULES_MAIL: * NGINX_MODULES_STREAM: *

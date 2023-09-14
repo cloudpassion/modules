@@ -1,1 +1,0 @@
-sys-boot/grub device-mapper fonts mount efiemu GRUB_PLATFORMS: efi-64 efi-32 pc -*

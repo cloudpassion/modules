@@ -1,8 +1,0 @@
-dev-libs/libpcre recursion-limit static-libs
-dev-libs/libpcre2 pcre32 pcre16 recursion-limit jit
-dev-libs/apr-util
-dev-libs/libverto libev
-dev-libs/boost threads nls
-dev-libs/openssl sctp 
-dev-libs/libxml2 python
-dev-libs/nss cacert utils

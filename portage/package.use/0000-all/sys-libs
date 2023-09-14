@@ -1,7 +1,0 @@
-sys-libs/glibc ssp -crypt
-sys-libs/gdbm berkdb
-sys-libs/ldb python 
-sys-libs/talloc python 
-sys-libs/tdb python 
-sys-libs/tevent python 
-sys-libs/libxcrypt system split-usr
