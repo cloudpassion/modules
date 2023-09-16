@@ -104,7 +104,10 @@ class DetailsPage(
             pass
 
         translate = ''.join(splitted_name[3][1:-1])
-        ripped = ''.join(splitted_name[4][1:])
+        try:
+            ripped = ''.join(splitted_name[4][1:])
+        except:
+            ripped = None
 
         image = soup.find('meta', {'property': 'og:image'}).get('content')
 
