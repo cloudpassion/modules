@@ -93,6 +93,14 @@ class TGxHotPicks(
             if 'sub.php' in href:
                 logger.info(f'hub in {href=}')
                 continue
+            
+            if 'zub.pnp' in href:
+                logger.info(f'zub in {href=}')
+                continue
+
+            if 'zpp3r' in href:
+                logger.info(f'zpp3r in {href=}')
+                continue
 
             try:
                 id = int(href.split('id=')[-1])
