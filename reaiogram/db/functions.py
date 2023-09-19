@@ -58,4 +58,17 @@ class DbFunctions:
             logger.info(f'{_strings=}')
             logger.info(f'{db_kwargs=}')
 
+        if digest == '34f432db71146bdba531c6887ef458f6cbf7083cf8ab537db84a5f9c727833ae5e4732d3c3f4c8300f4ae72fb70a37cddae156562e9ebdbb1d277bd42c112b04':
+            logger.info(f'{_strings=}')
+            logger.info(f'{db_kwargs=}')
+
+        if digest == '1c0a6d013e2bf7bd39505606ec037ff4371e06853b6c4fbafd7369275146456fcdcb8ed365b8690dee7442ca57bdf031a1e00457cfefebdc49c80f816374cda1':
+            logger.info(f'{_strings=}')
+            logger.info(f'{db_kwargs=}')
+
+        if digest == '86f8f5d40e3f1ff2d1e65637bd73091e9bf19e8ca897a00183306bb3641e6b0ffac6d3bbf698e2324a104677d4595c3da4245b5b13ebaf5853e36dca5a1427cb':
+            logger.info(f'{_strings=}')
+            logger.info(f'{db_kwargs=}')
+
+
         return digest

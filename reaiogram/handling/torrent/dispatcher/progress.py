@@ -50,11 +50,13 @@ class TorrentProgressDispatcher(
 
                 await asyncio.sleep(random.randint(1, 5))
 
-            except asyncio.CancelledError:
+            except asyncio.CancelledError as exc:
+                logger.info(f'{exc=} h1')
+                # break
                 raise
 
     async def _print_torrents_progress(self):
-        update_interval = 2
+        update_interval = 10
 
         while True:
 
@@ -64,28 +66,32 @@ class TorrentProgressDispatcher(
             # logger.info(f'{self.torrents=}')
             for info_hash, status in self.torrents.items():
                 # logger.info(f'{info_hash=}, {status=}')
+                status: TorrentStatus
 
                 if not status or not status.in_work or not status.torrent:
                     continue
 
-                torrent = status.torrent
+                torrent: TorrentFile = status.torrent
                 if not torrent:
                     continue
 
-                status: TorrentStatus
-                torrent: TorrentFile = status.torrent
-
                 try:
-                    line = f'{ERASE_LINE}' \
-                           f'h: {torrent.info_hash} ' \
-                           f'p: {status.total - status.missing}/{status.total} ' \
-                           f'tr: {status.connected_trackers}, ' \
-                           f'pr: {status.connected_peers} ' \
-                           f'n: {torrent.name[0:20]}'
-
-                    status_lines.append(line)
+                    if not status.missing:
+                        continue
                 except AttributeError:
                     continue
+
+                line = f'{ERASE_LINE}' \
+                       f'h: {torrent.info_hash} ' \
+                       f'p: {status.total - status.missing}/{status.total} ' \
+                       f'tr: {status.connected_trackers}, ' \
+                       f'pr: {status.connected_peers} ' \
+                       f'n: {torrent.name[0:20]}'
+
+                status_lines.append(line)
+
+            # await asyncio.sleep(10)
+            # continue
 
             if len(status_lines) > 1:
                 print(

@@ -16,6 +16,8 @@ TORRENT_KEYS = [
 
     'publisher',
     'publisher-url',
+
+    'count',
 ]
 TORRENT_SELECT_KEYS = [
     'info_hash',
@@ -54,11 +56,15 @@ class AbstractTorrentFile(ExtraBasedModel):
     created_by = models.CharField(max_length=1024, null=True, blank=True)
     creation_date = models.BigIntegerField(null=True, blank=True)
     #
-    announce_list = models.TextField(max_length=16384, null=True, blank=True)
-    url_list = models.TextField(max_length=16384, null=True, blank=True)
+    announce_list = models.TextField(max_length=163840, null=True, blank=True)
+    url_list = models.TextField(max_length=163840, null=True, blank=True)
     #
     publisher = models.CharField(max_length=1024, null=True, blank=True)
     publisher_url = models.CharField(max_length=1024, null=True, blank=True)
+
+    redown_skip = models.BooleanField(null=True, blank=True)
+
+    count = models.BigIntegerField(null=True, blank=True)
 
 
 class TorrentFile(AbstractTorrentFile):

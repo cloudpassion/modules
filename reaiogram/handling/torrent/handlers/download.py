@@ -28,18 +28,34 @@ class TorrentDownloadHandler(BaseHandler):
 
         self.event: Message
 
-        await self.event.answer(
-            text=f'{torrent.name}\n'
-                 f'{torrent.comment}\n'
-                 f'{torrent.publisher_url}\n'
-                 f'{torrent.info_hash}'
-        )
+        try:
+            cmt = torrent.comment or torrent.publisher_url
+            await self.event.reply(
+                text=f'{torrent.name}\n'
+                     f'{cmt}\n'
+                     f'{torrent.info_hash}'
+            )
+        except Exception as exc:
+            logger.info(f'{exc=}')
+            pass
 
         torrent_status = dp.torrents[torrent.info_hash]
         torrent_status.in_work = True
 
+        # def reply_callback():
+        #     return self.event.reply(
+        #         text=f'{torrent.name}\n'
+        #              f'{torrent.info_hash}\n\n'
+        #              f'complete'
+        #     )
+        # ret = reply_callback()
+        # logger.info(f'{ret=}')
+
         asyncio.create_task(
-            torrent.download_some_pieces(version=6)
+            torrent.download_some_pieces(
+                version=6,
+                callback=self.event
+            )
         )
 
 

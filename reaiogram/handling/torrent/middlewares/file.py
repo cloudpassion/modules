@@ -7,6 +7,7 @@ from aiogram.dispatcher.event.bases import SkipHandler
 from reaiogram.default.router import Router
 from reaiogram.utils.enums import MESSAGE_UPDATE_TYPES
 
+from config import secrets
 from log import logger
 
 # from ....dispatcher.default import ExtraDispatcher
@@ -62,6 +63,10 @@ async def parse_message_for_torrents(
         logger.info(f'skip old')
         return
 
+    if torrent.info_hash in secrets.temp.skip:
+        logger.info(f'{torrent.name} in skip')
+        return
+
     try:
         torrent_status = dp.torrents[torrent.info_hash]
     except KeyError:
@@ -70,6 +75,16 @@ async def parse_message_for_torrents(
 
     if torrent_status.in_work:
         logger.info(f'skip {torrent.info_hash}, now in queue')
+        try:
+            await message.reply(
+                text=f'{torrent.name}\n'
+                     f'{torrent.comment}\n'
+                     f'{torrent.publisher_url}\n'
+                     f'{torrent.info_hash}\n'
+                     f'already in queue'
+            )
+        except Exception:
+            pass
         return await handler(message, data)
 
     torrent_status.in_work = True

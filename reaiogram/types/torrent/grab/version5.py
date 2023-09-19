@@ -77,14 +77,16 @@ class TorrentGrabVersion5(
             dj: DjangoTorrentPiece = await torrent_piece.from_orm()
 
             info_hash = torrent_piece.info_hash
-            redis = self.redis.get(info_hash)
+            i_h = f'{dj.index}_{info_hash}'
+
+            redis = self.redis.get(i_h)
             if dj.message or dj.resume_data or redis:
                 if redis:
-                    redis_hashes.append(info_hash)
+                    redis_hashes.append(i_h)
 
                 item = [
                     p for p in missing_pieces if (
-                            p.hash == from_hex_to_bytes(torrent_piece.info_hash)
+                            p.hash == from_hex_to_bytes(torrent_piece.info_hash) and p.index == torrent_piece.index
                     )
                 ][0]
                 # index = missing_pieces.index()
@@ -129,7 +131,7 @@ class TorrentGrabVersion5(
         # all pieces in db by torrent
         dj_pieces = DjangoTorrentPiece.objects.filter(
             torrent=await self.from_orm(),
-            version=6,
+            # version=6,
         )
         logger.info(f'{len(dj_pieces)=}')
 
@@ -151,15 +153,15 @@ class TorrentGrabVersion5(
 
         logger.info(f'{len(dji_txt_docs)=}, {dji_txt_docs[:10]}')
 
-        old_txt_messages = [
-            m for m in all_messages if m.document in dji_txt_docs
-        ]
+        # old_txt_messages = [
+        #     m for m in all_messages if m.document in dji_txt_docs
+        # ]
 
         docs_names = []
 
-        txt_messages = []
-        sorted(old_txt_messages, key=lambda txt_msg: txt_msg.id)
-        txt_messages = old_txt_messages
+        # txt_messages = []
+        # sorted(old_txt_messages, key=lambda txt_msg: txt_msg.id)
+        # txt_messages = old_txt_messages
 
         # for txt_msg in reversed(old_txt_messages):
         #
@@ -177,7 +179,7 @@ class TorrentGrabVersion5(
         # with open('.ids', 'w') as w:
         #     w.writelines([f'{m.id}\n' for m in txt_messages])
 
-        logger.info(f'{len(txt_messages)=}')
+        # logger.info(f'{len(txt_messages)=}')
 
         async def get_txt_files(
             _documents, count
@@ -219,6 +221,7 @@ class TorrentGrabVersion5(
 
                 file_name = doc.file_name
                 txt_name = file_name.replace('.data', '.txt')
+                # logger.info(f'{txt_name=}')
 
                 if not dict_files.get(txt_name):
                     dict_files[txt_name] = ''
@@ -317,6 +320,7 @@ class TorrentGrabVersion5(
                     )
                     break
                 except Exception as exc:
+                    log_stack.error('exc')
                     logger.info(f'{exc=}')
                     await asyncio.sleep(60)
                     continue
@@ -347,8 +351,13 @@ class TorrentGrabVersion5(
         for txt in txt_bytes:
             txt_file, txt_bt = txt
 
-            info_hash = txt_file.split('_')[1].split('.')[0]
+            l = len(re.findall('_', txt_file))
+            if l == 1:
+                info_hash = txt_file.split('_')[1].split('.')[0]
+            if l == 2:
+                info_hash = txt_file.split('_')[2].split('.')[0]
 
+            # logger.info(f'{txt_file=}')
             dj_piece = [
                 x for x in dj_pieces if (
                         info_hash in x.info_hash

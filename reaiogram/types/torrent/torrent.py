@@ -4,6 +4,7 @@ import re
 from typing import Optional
 
 from asgiref.sync import sync_to_async, async_to_sync
+from atiny.file.aio import create_dir
 
 from config import settings, secrets
 from log import logger, log_stack
@@ -82,7 +83,7 @@ class TorrentFile(
 
             piece = TorrentPiece(
                 self.orm, self.bot, self,
-                piece=hash_pieces[info_hash],
+                piece=hash_pieces[f'{select.index}_{info_hash}'],
             )
 
             self.pieces.append(piece)
@@ -116,7 +117,7 @@ class TorrentFile(
             return
 
         logger.info(f'need to add pieces')
-        select_hashes = [x.info_hash for x in select_all]
+        select_hashes = [f'{x.index}_{x.info_hash}' for x in select_all]
 
         # logger.info(f'{len(self.metadata.pieces)=}')
 
@@ -133,15 +134,20 @@ class TorrentFile(
 
         for metadata_piece in self.metadata.pieces:
             # l += 1
+
             # logger.info(f'{metadata_piece=}')
             piece = TorrentPiece(
                 self.orm, self.bot,
                 torrent=self,
                 piece=metadata_piece,
             )
+            if piece.info_hash == '6a521e1d2a632c26e53b83d2cc4b0edecfc1e68c':
+                logger.info(f'{piece=}')
+                logger.info(f'{piece.index=}')
 
-            if piece.info_hash in select_hashes:
-                # logger.info(f'continue')
+            if f'{piece.index}_{piece.info_hash}' in select_hashes:
+            # if piece.info_hash in select_hashes:
+            #     logger.info(f'continue {piece.index=}')
                 continue
 
             task = asyncio.create_task(
@@ -161,8 +167,17 @@ class TorrentFile(
 
         await asyncio.gather(*tasks)
 
+        logger.info(f'{len(self.pieces)=}')
+
         # quit()
         await self.bulk_pieces_to_orm()
+
+        if len(self.pieces) != len(self.metadata.pieces):
+            logger.info(f'recheck pieces')
+
+            self.pieces = []
+
+            await self.add_pieces_to_django()
 
     async def grab_torrent_from_telegram(
             self,
@@ -178,7 +193,11 @@ class TorrentFile(
             return
 
         root_dir = '/exm/wd1000blk/temp_tg'
+        create_dir(root_dir)
+
         out_dir = f'{root_dir}/out'
+
+        create_dir(out_dir)
 
         if isinstance(version, int):
             if 5 <= version <= 6:
@@ -194,7 +213,8 @@ class TorrentFile(
 
     async def download_some_pieces(
             self,
-            version
+            version,
+            callback=None
     ):
 
         if not self.pieces:
@@ -222,11 +242,15 @@ class TorrentFile(
             await self._download_some_pieces_version5()
 
         if version == 6:
+            try:
             # asyncio.create_task(
-            await self._download_some_pieces_version6()
+                await self._download_some_pieces_version6(callback=callback)
+            except Exception as exc:
+                log_stack.error('ch log')
+                logger.info(f'check log {exc=}')
             # )
 
-        logger.info(f'mb dwn started {self.info_hash=}')
+        logger.info(f'mb dwn ended {self.info_hash=}')
 
     async def bulk_pieces_to_orm(self):
         return await self.orm.bulk_add(
@@ -300,6 +324,7 @@ class TorrentPiece(
             data=self,
             select_kwargs={
                 'torrent': torrent,
+                'index': self.index,
                 'info_hash': self.info_hash,
             }
         )

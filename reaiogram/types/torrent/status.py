@@ -2,7 +2,6 @@
 class TorrentStatus:
 
     in_work: bool
-
     total: int
     missing: int
     connected_trackers: int

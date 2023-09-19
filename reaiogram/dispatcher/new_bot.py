@@ -22,7 +22,7 @@ class NewBotDispatcher(
     wait_upload = 0
     upload_bot: Bot
     upload_bots: List[Bot]
-    upload_sem = asyncio.Semaphore(5)
+    upload_sem = asyncio.Semaphore(15)
     upload_close = AsyncLimiter(1, time_period=10)
     upload_close_wait = False
 
@@ -72,14 +72,19 @@ class NewBotDispatcher(
 
         # logger.info(f'old bot {bot=} close, {len(self.upload_bots)=}')
         # async with self.upload_close:
-            # self.upload_close_wait = True
+        # self.upload_close_wait = True
 
         while True:
             try:
+
+                # async with bot.session.close:
+                #     await asyncio.sleep(0)
+
+                bot: Bot
                 session: AiohttpSession = bot.session
                 await session.close()
                 #logger.ianfo(f'{session=}\n\n\n\n\n')
-                del session
+                #del session
                 del bot.session
                 del bot
                 # await bot.session.close()

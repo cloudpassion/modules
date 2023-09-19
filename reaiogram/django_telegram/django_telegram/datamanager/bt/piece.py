@@ -11,6 +11,7 @@ PIECE_KEYS = [
     'message',
 
     'version',
+    'index',
     'length',
     'begin',
 
@@ -18,13 +19,14 @@ PIECE_KEYS = [
 ]
 
 PIECE_SELECT_KEYS = [
-    'torrent', 'info_hash',
+    'torrent', 'info_hash', 'index',
 ]
 
 PIECE_HASH_KEY = 'piece'
 PIECE_HASH_KEYS = [
     'info_hash',
     'torrent.info_hash',
+    'index',
 ]
 
 
@@ -57,6 +59,8 @@ class TorrentPiece(ExtraBasedModel):
         null=True, blank=True,
         verbose_name='Upload version'
     )
+
+    index = models.BigIntegerField(null=True, blank=True)
     length = models.BigIntegerField()
     begin = models.BigIntegerField(null=True, blank=True)
 

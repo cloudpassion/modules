@@ -1,11 +1,12 @@
-# import gc
+import gc
 import re
 import asyncio
 import random
+import threading
 import time
 
 import psutil
-import tracemalloc
+# import tracemalloc
 
 from aiolimiter import AsyncLimiter
 from aiogram.exceptions import (
@@ -42,9 +43,11 @@ class TorrentDownloadVersion6(
     # upload 50MB, but download 50MB
     # drop upload to 20MB for skip downloading by telethon
     async def _download_some_pieces_version6(
-            self, twice=True
+            self,
+            callback=None,
     ):
 
+        tasks = []
         redis_hashes = []
         missing_pieces = set(self.metadata.pieces)
 
@@ -55,14 +58,14 @@ class TorrentDownloadVersion6(
             dj: DjangoTorrentPiece = await torrent_piece.from_orm()
 
             info_hash = torrent_piece.info_hash
-            redis = self.redis.get(info_hash)
+            redis = self.redis.get(f'{torrent_piece.index}_{info_hash}')
             if dj.message or dj.resume_data or redis:
                 if redis:
-                    redis_hashes.append(info_hash)
+                    redis_hashes.append(f'{torrent_piece.index}_{info_hash}')
 
                 item = [
                     p for p in missing_pieces if (
-                            p.hash == from_hex_to_bytes(torrent_piece.info_hash)
+                            p.hash == from_hex_to_bytes(torrent_piece.info_hash) and p.index == torrent_piece.index
                     )
                 ][0]
                 # index = missing_pieces.index()
@@ -84,27 +87,96 @@ class TorrentDownloadVersion6(
 
             logger.info(f'pre redis complete: {self.info_hash}')
 
-        asyncio.create_task(
+
+        task = asyncio.create_task(
             self._mon_completed_and_upload_version6(
                 missing_pieces,
                 [],
                 set_status=True
-            )
+            ),
         )
-
-        # asyncio.create_task(
-        #     self.download(
-        #             missing_pieces,
-        #             to_bytes=True,
-        #             progress_func=self.dp._pick_surge_progress
-        #         )
-        # )
+        tasks.append(task)
 
         await self.download(
-            missing_pieces,
-            to_bytes=True,
-            progress_func=self.dp._pick_surge_progress
-        )
+                missing_pieces,
+                to_bytes=True,
+                progress_func=self.dp._pick_surge_progress
+            )
+
+        # asyncio.run_coroutine_threadsafe(
+        #     self.download(
+        #         missing_pieces,
+        #         to_bytes=True,
+        #         progress_func=self.dp._pick_surge_progress
+        #     ),
+        #     self.dp.new_loop
+        # )
+        # tasks.append(task)
+
+        # await asyncio.sleep(10)
+
+        # logger.info(f'{len(missing_pieces)=}')
+
+        # asyncio.set_event_loop(self.dp.m_loop)
+
+        # await self._mon_completed_and_upload_version6(
+        #         missing_pieces,
+        #         [],
+        #         set_status=True
+        # )
+
+        logger.info(f'end1 {self.info_hash=}')
+        #
+        logger.info(f'start tasks: {self.info_hash=}')
+        await asyncio.gather(*tasks)
+        logger.info(f'tasks complete: {self.info_hash=}')
+
+        logger.info(f'{callback=}')
+
+        # while True:
+        if True:
+            try:
+                #if callback:
+                if True:
+                    # await callback.reply(
+                    #     text=f'{self.name}\n'
+                    #          f'{self.info_hash}\n\n'
+                    #          f'complete'
+                    # )
+                    await self.bot.send_message(
+                        chat_id=secrets.bt.chat.download.id,
+                        message_thread_id=secrets.bt.chat.download.thread_id,
+                        text=f'{self.name}\n'
+                             f'{self.info_hash}\n\n'
+                             f'complete',
+                    )
+            except Exception as exc:
+                logger.info(f'clb sleep {exc}')
+                #await asyncio.sleep(random.randint(10,20))
+                # continue
+            #
+            # break
+
+        await asyncio.sleep(1)
+        logger.info(f'aft')
+
+        # await self.bot.send_message(
+        #     chat_id=secrets.bt.chat.download.id,
+        #     text=f'{self.name}\n'
+        #          f'{self.info_hash}\n\n'
+        #          f'complete',
+        # )
+
+        # if set_status:
+        # torrent_status = self.dp.torrents[self.info_hash]
+        # torrent_status.in_work = False
+
+        # await self.download(
+        #     missing_pieces,
+        #     to_bytes=True,
+        #     progress_func=self.dp._pick_surge_progress
+        # )
+        assert False
 
     async def _mon_completed_and_upload_version6(
             self,
@@ -113,19 +185,25 @@ class TorrentDownloadVersion6(
             set_status=False,
     ):
 
+        missing_pieces = set(missing_pieces)
+
         logger.info(f'{len(missing_pieces)=}')
         logger.info(f'{len(redis_hashes)=}')
         # logger.info(f'{len(missing_pieces)}')
 
+        # if not missing_pieces and not redis_hashes:
+        #     return
+
         # missing_pieces = set(missing_pieces)
         tasks = []
         piece_size = max([int(x.length) for x in self.pieces])
-        # i = 0
+        # logger.info(f'{piece_size=}')
+        i = 0
         # dt_count = 0
         # ms_count = 0
         while missing_pieces or redis_hashes:
 
-            await asyncio.sleep(1)
+            # await asyncio.sleep(5)
 
             pieces_to_upload = []
             hashes = []
@@ -135,11 +213,12 @@ class TorrentDownloadVersion6(
 
             while missing_pieces or redis_hashes:
 
-                await asyncio.sleep(1)
+                # await asyncio.sleep(5)
                 # logger.info(f'{len(missing_pieces)=}, {len(self.data)=}\n'
                 #             f'{dt_count=}\n'
                 #             f'{ms_count=}')
 
+                h = None
                 for dt in [redis_hashes, self.data]:
 
                     if not dt:
@@ -154,11 +233,21 @@ class TorrentDownloadVersion6(
                     await asyncio.sleep(10)
                     continue
 
+                if not h:
+                    continue
+
+                _h = h
+                # logger.info(f'{_h}\n\n\n\n\n\n\n\n')
+
+                ind = int(_h.split('_')[0])
+                h = _h.split('_')[1]
+
                 ms_p = [
                     p for p in self.metadata.pieces if (
-                            p.hash == from_hex_to_bytes(h)
+                            p.hash == from_hex_to_bytes(h) and p.index == ind
                     )
                 ]
+                # logger.info(f'{ms_p=}')
                 if not ms_p:
                     continue
 
@@ -169,17 +258,18 @@ class TorrentDownloadVersion6(
                     pass
 
                 # ms_count += 1
-                # i += 1
+                i += 1
 
                 # pd = self.redis.get(h)
 
                 # logger.info(f'{h=}')
                 torrent_piece = [
                     p for p in self.pieces if (
-                        p.info_hash == h
+                        p.info_hash == h and p.index == ind
                     )
                 ][0]
                 # logger.info(f'{piece=}, {torrent_piece=}')
+                # logger.info(f'{torrent_piece.index=}')
 
                 torrent_piece.begin = begin
                 torrent_piece.version = 6
@@ -192,7 +282,7 @@ class TorrentDownloadVersion6(
                         f'{len_for_text}|' \
                         f'{torrent_piece.info_hash}\n'
 
-                hashes.append(h)
+                hashes.append(_h)
                 begin += length
                 size += length
 
@@ -215,6 +305,8 @@ class TorrentDownloadVersion6(
             #         # missing_pieces,
             #         # tm_start,
             #     )
+
+            # tasks variant
             task = asyncio.create_task(
                self._mon_upload_task_version6(
                    pieces_to_upload,
@@ -223,13 +315,12 @@ class TorrentDownloadVersion6(
                )
             )
             tasks.append(task)
-
+            #
+            # await variant
             # await self._mon_upload_task_version6(
             #     pieces_to_upload,
             #     hashes,
             #     text,
-            #     # missing_pieces,
-            #     # tm_start,
             # )
 
             # del pieces_to_upload
@@ -243,11 +334,13 @@ class TorrentDownloadVersion6(
             #     for stat in top_stats[:10]:
             #         logger.info(f'{stat}')
 
-        logger.info(f'start tasks: {self.info_hash=}')
+        # return tasks
+        logger.info(f'1start tasks: {self.info_hash=}')
         await asyncio.gather(*tasks)
-        logger.info(f'tasks complete: {self.info_hash=}')
+        logger.info(f'1tasks complete: {self.info_hash=}')
 
         if set_status:
+            logger.info(f'set_status: {self.info_hash=}')
             torrent_status = self.dp.torrents[self.info_hash]
             torrent_status.in_work = False
 
@@ -256,19 +349,23 @@ class TorrentDownloadVersion6(
             pieces_to_upload,
             hashes,
             text,
-            # missing_pieces,
-            # tm_start,
     ):
         # TODO check file name
-        caption = f'{self.info_hash}_{hashes[0]}'
+        # i_h = [x.split("_")[1] for x in hashes]
+        caption = f'{self.info_hash}_{hashes[0].split("_")[1]}'
 
         for h in hashes:
             if not self.redis.get(h):
                 logger.info(f'redown')
                 return
 
+        data = b''
+        for h in hashes:
+            data += self.redis.get(h)
+
+        # data = b''.join([self.redis.get(h) for h in hashes])
         piece_file = BufferedInputFile(
-            b''.join([self.redis.get(h) for h in hashes]),
+            data,
             filename=f'{caption}.data'
         )
         setattr(piece_file, 'prefix', 'piece')
@@ -282,7 +379,8 @@ class TorrentDownloadVersion6(
         bt = secrets.bt.chat
 
         kwargs_data = {}
-        for input_file in [piece_file, txt_file, ]:
+        # for input_file in [piece_file, txt_file, ]:
+        for input_file in [piece_file, ]:
             if input_file is txt_file:
                 chat_id = bt.txt.id
                 thread_id = bt.txt.thread_id
@@ -298,16 +396,16 @@ class TorrentDownloadVersion6(
                     while wu:
                         await asyncio.sleep(wu)
                         wu = self.dp.wait_upload
-                        # logger.info(f'{wu=}')
+                        logger.info(f'{wu=}')
 
-                    async with self.dp.upload_at_minute:
-                        async with self.dp.upload_sem:
-                            message = await upload_bot.send_document(
-                                chat_id=chat_id,
-                                message_thread_id=thread_id,
-                                caption=self.info_hash,
-                                document=input_file,
-                            )
+                    # async with self.dp.upload_at_minute:
+                    async with self.dp.upload_sem:
+                        message = await upload_bot.send_document(
+                            chat_id=chat_id,
+                            message_thread_id=thread_id,
+                            caption=self.info_hash,
+                            document=input_file,
+                        )
 
                     if not message:
                         raise Exception('no message')
@@ -356,6 +454,13 @@ class TorrentDownloadVersion6(
                 # logger.info(f'still upload: {self.info_hash}')
                 await asyncio.sleep(1)
 
+        del data
+        del input_file
+        del txt_file
+        del piece_file
+
+        gc.collect()
+
         merged_message = kwargs_data['piece_merged_message']
         for uploaded_piece in pieces_to_upload:
 
@@ -372,41 +477,22 @@ class TorrentDownloadVersion6(
             uploaded_piece._to_db_message = from_orm
             await uploaded_piece.update_orm()
 
-            from_orm = await uploaded_piece.from_orm()
-            while not from_orm:
-                from_orm = await merged_message.from_orm()
-                await asyncio.sleep(30)
-                logger.info(f'wait from_orm_2')
-
-            while not hasattr(from_orm, 'message') or from_orm.message.id != merged_message.id:
-
+            try:
                 from_orm = await uploaded_piece.from_orm()
-                await asyncio.sleep(30)
-                logger.info(f'wait from_orm_id')
+                while from_orm.message.id != merged_message.id:
 
-            self.redis.delete(uploaded_piece.info_hash) #piece.hash)
+                    from_orm = await uploaded_piece.from_orm()
+                    await asyncio.sleep(30)
+                    logger.info(f'wait from_orm_id')
 
-        # # mem_pre = psutil.Process().memory_info().rss / (1024 * 1024)
-        # del pieces_to_upload
-        # # del pieces_to_del
-        # # del cl_to_del
-        #
-        # del input_file
-        # del txt_file
-        # del piece_file
-        # # del data
-        #
-        # del message.document
-        # del merged_message.document.unmerged
-        # del merged_message.document
-        # del merged_message
-        # del kwargs_data['sended_merged_message']
+                self.redis.delete(
+                    f'{uploaded_piece.index}_{uploaded_piece.info_hash}'
+                ) #piece.hash)
+            except Exception as exc:
+                logger.info(f'{exc=}')
 
-        # gc.collect()
-        # tm_end = time.time()
 
-        # mem_after = psutil.Process().memory_info().rss / (1024 * 1024)
-        # logger.info(f'uploading time: {tm_end-tm_start}')
-        # logger.info(f'upload complete') #: {tm_end-tm_start}\n')
-        #             f'{mem_pre=}\n')
-        #             f'{mem_after=}')
+        del pieces_to_upload
+
+        gc.collect()
+        # end

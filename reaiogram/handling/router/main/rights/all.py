@@ -20,6 +20,12 @@ async def allow_creator(
         if event.from_user.id == secrets.rights.creator.id:
             logger.info(f'handle for creator')
             data.update({'rights_passed': True})
+
+        # temp
+        if event.from_user.id in [513231497, 995243063]:
+            logger.info(f'handle for temp')
+            data.update({'rights_passed': True})
+
     except Exception:
         logger.info(f'unparsed_type')
 
