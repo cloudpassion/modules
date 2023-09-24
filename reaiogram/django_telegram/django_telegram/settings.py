@@ -33,7 +33,7 @@ DEBUGGER_ADDRESS = "0.0.0.0"
 DEBUGGER_PORT = "5678"
 
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.55.181']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '192.168.55.181', 'uqd', 'uqddev']
 INTERNAL_IPS = ['127.0.0.1', ]
 
 

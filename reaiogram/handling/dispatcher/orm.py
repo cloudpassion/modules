@@ -21,9 +21,10 @@ class OrmDispatcher(ExtraDispatcher):
 
             bot = data['bot']
 
-            me = await bot.me()
+            # me = await bot.me()
             merged_bot = await bot.me_orm()
 
+            logger.info(f'{data=}')
             data.update(await self.orm.update_to_orm(
                 update=update, merged_bot=merged_bot,
             ))

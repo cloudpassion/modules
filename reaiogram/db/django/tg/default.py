@@ -192,7 +192,7 @@ class DefaultDjangoTgORM(
 
     async def add_one_history(self, data, db_class):
         try:
-           return await self.add_one(data, db_class, skip_select=True)
+            return await self.add_one(data, db_class, skip_select=True, db_hash_check=True)
         except django.db.utils.IntegrityError as exc:
             if 'duplicate key value violates unique constraint' in f'{exc}':
                 return
@@ -260,6 +260,7 @@ class DefaultDjangoTgORM(
                 type(DjangoTgChat),
             ],
             skip_select=False,
+            db_hash_check=False,
     ):
 
         db = None
@@ -278,7 +279,18 @@ class DefaultDjangoTgORM(
         db_kwargs['db_hash'] = self.calc_hash(
             db_class=db_class, db_kwargs=db_kwargs.copy(),
         )
+
+        if not db_hash_check:
         # logger.info(f'{db_kwargs=}, {db_class}')
+            return await sync_to_async(db_class(**db_kwargs).save)()
+
+        self.set_select(data, {'db_hash': db_kwargs['db_hash']}, set_keys=True)
+        db = await self.select_one(data, db_class)
+        if db:
+            return db
+
+        # logger.info(f'update history? {db_kwargs=}')
+
         return await sync_to_async(db_class(**db_kwargs).save)()
 
     async def bulk_add(

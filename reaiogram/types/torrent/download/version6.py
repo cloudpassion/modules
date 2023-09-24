@@ -87,7 +87,6 @@ class TorrentDownloadVersion6(
 
             logger.info(f'pre redis complete: {self.info_hash}')
 
-
         task = asyncio.create_task(
             self._mon_completed_and_upload_version6(
                 missing_pieces,
@@ -466,7 +465,14 @@ class TorrentDownloadVersion6(
 
             # logger.info(f'{uploaded_piece._to_db_torrent=}')
 
-            await uploaded_piece._deep_to_orm()
+            # skip_to_db for merged_message
+            # at first piece merged_message is already deeped
+            # at 1..len(pieces_to_upload) it raise db_hash integrity error
+            # for history message update
+            # because every message update run
+            # historymessage update for save all changes
+            # even no changes
+            await uploaded_piece._deep_to_orm(skip_to_db=True)
 
             from_orm = await merged_message.from_orm()
             while not from_orm:
@@ -490,7 +496,6 @@ class TorrentDownloadVersion6(
                 ) #piece.hash)
             except Exception as exc:
                 logger.info(f'{exc=}')
-
 
         del pieces_to_upload
 

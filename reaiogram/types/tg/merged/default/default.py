@@ -95,6 +95,13 @@ class AbstractMergedTelegram:
                 setattr(self, f'_to_db_{key}', self_val)
                 continue
 
+            if isinstance(
+                self_val, (
+                        bytes,
+                    )
+            ):
+                print(f'bytes:{self_val=}')
+
             # at end, because 0 inteter 'is not' too
             if not self_val:
                 setattr(self, f'_to_db_{key}', None)

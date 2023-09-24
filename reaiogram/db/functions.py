@@ -54,6 +54,19 @@ class DbFunctions:
 
         hash_object = hashlib.sha512(''.join(_strings).encode('utf8'))
         digest = hash_object.hexdigest()
+
+        if digest == '8987c091b54b350a7dc6726f8bfa788bb5120e4722716c3434e3fc1e21afaa1b2440fd292c2f1d8cf7a1a9f432a1bf5cfe4911ce699261a32077ee1b41b86c38':
+            logger.info(f'{_strings=}')
+            logger.info(f'{db_kwargs=}')
+
+        if digest == '7afc80a6818dae08313a194c28078a79657587c3b30dd7d7183f4d3f31390efed23bd4242a23e72f7683bec417c46045869e5ce6acbd87e92a5209da90b08e26':
+            logger.info(f'{_strings=}')
+            logger.info(f'{db_kwargs=}')
+
+        if digest == 'ef81b4bb107185d302d6f3ca8f0acd8375ddd099d8a8b17a419143da691e26147459fb4fdb10db8817820955efbfac5c7fc87af7fcf0a43b3ff233c1e88befda':
+            logger.info(f'{_strings=}')
+            logger.info(f'{db_kwargs=}')
+
         if digest == '2932afee7ee0905cf16602c4ce93373191948b8d561565629c88a492ce7bf4996b9ae2525cda8fdd438dfaa066924db0f8536d7912729f60ad21ae8186978701':
             logger.info(f'{_strings=}')
             logger.info(f'{db_kwargs=}')
