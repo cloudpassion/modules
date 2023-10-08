@@ -166,8 +166,10 @@ class TgxMonitor(
             return
 
         tr = 0
+        tr55 = 0
         br = False
         while True:
+            tr55 += 1
             try:
 
                 http = MyHttp()
@@ -191,6 +193,9 @@ class TgxMonitor(
                 status = js.get('status')
                 logger.info(f'{status=}')
                 if status != 'success':
+                    if tr55 > 50:
+                        br = True
+                        break
                     await asyncio.sleep(10)
                     continue
 
