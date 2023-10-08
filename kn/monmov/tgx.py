@@ -175,14 +175,15 @@ class TgxMonitor(
                 magnet = details_page.magnet if hasattr(
                     details_page, 'magnet'
                 ) else f'magnet:?xt=urn:btih:{details_page.info_hash.lower()}'
+                url = f'http://{secrets.m2t.host}/?'\
+                      f'apikey={secrets.m2t.api}&'\
+                      f'magnet={magnet}'
                 resp = await http.get(
-                    url=f'http://{secrets.m2t.host}/?'
-                        f'apikey={secrets.m2t.api}&'
-                        f'magnet={magnet}',
+                    url
                 )
 
                 if resp.error or resp.status != 200:
-                    logger.info(f'check 55')
+                    logger.info(f'check 55: {url=}')
                     await asyncio.sleep(10)
                     continue
 
