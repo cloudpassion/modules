@@ -1,0 +1,5 @@
+
+
+class PiecesInTxtDefault:
+
+    version: int
