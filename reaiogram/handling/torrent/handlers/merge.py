@@ -26,11 +26,43 @@ class TorrentMergeHandler(BaseHandler):
             return
 
         torrent_status = dp.torrents[torrent.info_hash]
+        if torrent_status.in_work:
+            return
+
         torrent_status.in_work = True
 
-        await torrent.grab_torrent_from_telegram(version='5_1')
+        cmt = torrent.comment or torrent.publisher_url
+        if not cmt:
+            cmt = ''
+
+        try:
+            await self.event.reply(
+                text=f'start merging\n'
+                     f'{torrent.name}\n'
+                     f'{cmt}\n'
+                     f'{torrent.info_hash}'
+            )
+        except Exception as exc:
+            pass
+
+        resp = await torrent.grab_torrent_from_telegram(version=6)
 
         torrent_status.in_work = False
+
+        if resp:
+            await self.event.reply(
+                text=f'end merging\n'
+                     f'{torrent.name}\n'
+                     f'{cmt}\n'
+                     f'{torrent.info_hash}'
+            )
+        else:
+            await self.event.reply(
+                text=f'need redown\n'
+                     f'{torrent.name}\n'
+                     f'{cmt}\n'
+                     f'{torrent.info_hash}'
+            )
 
         # asyncio.create_task(
         #     torrent.grab_torrent_from_telegram(version=5)

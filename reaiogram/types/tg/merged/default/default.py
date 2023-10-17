@@ -66,9 +66,35 @@ class AbstractMergedTelegram:
         # logger.info(f'{test=}, {hex(id(self))=}')
         for key in self.db_keys:
 
-            if skip_to_db and hasattr(self, f'_to_db_{key}'):
-                # logger.info(f'continue: {key=} in {self=}')
-                continue
+            # when early used deep_to_orm and later need to change some
+            # values, need to be careful about _to_db_{key} variable
+
+            if skip_to_db:
+
+                cont = False
+                if isinstance(skip_to_db, (list, tuple, set)):
+                    for skip_key in skip_to_db:
+                        if key == skip_key and hasattr(self, f'_to_db_{key}'):
+                            cont = True
+                            break
+                else:
+                    if hasattr(self, f'_to_db_{key}'):
+                        cont = True
+
+                if cont:
+                    # logger.info(f'continue: {key=} in {self=}')
+                    # for _tkey in self.db_keys:
+                    #     try:
+                    #         _db_val = getattr(self, f'_to_db_{_tkey}')
+                    #     except AttributeError:
+                    #         continue
+                    #
+                    #     logger.info(f'ch: {_tkey}: {_db_val}')
+                    continue
+
+            # if skip_to_db and hasattr(self, f'_to_db_{key}'):
+            #     # logger.info(f'continue: {key=} in {self=}')
+            #     continue
 
             # logger.info(f'{key=}, {self=}')
             try:
@@ -102,7 +128,7 @@ class AbstractMergedTelegram:
             ):
                 print(f'bytes:{self_val=}')
 
-            # at end, because 0 inteter 'is not' too
+            # at end, because 0 integer 'is not' too
             if not self_val:
                 setattr(self, f'_to_db_{key}', None)
                 continue

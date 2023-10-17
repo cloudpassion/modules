@@ -1,8 +1,11 @@
+import re
 import asyncio
+import random
 
 from aiogram import F
 from aiogram.handlers import BaseHandler
 from aiogram.types import Message
+from aiogram.exceptions import TelegramRetryAfter, TelegramBadRequest
 
 from config import secrets
 from log import logger
@@ -17,6 +20,7 @@ from ....types.torrent.torrent import TorrentFile
 class TorrentDownloadHandler(BaseHandler):
     async def handle(self):
 
+        bot = self.bot
         dp = self.bot.dp
 
         data = self.data
@@ -28,19 +32,36 @@ class TorrentDownloadHandler(BaseHandler):
 
         self.event: Message
 
+        torrent_status = dp.torrents[torrent.info_hash]
+
+        if torrent_status.in_work:
+            return
+
+        torrent_status.in_work = True
+
         try:
             cmt = torrent.comment or torrent.publisher_url
-            await self.event.reply(
-                text=f'{torrent.name}\n'
-                     f'{cmt}\n'
-                     f'{torrent.info_hash}'
-            )
+            if not cmt:
+                cmt = ''
+
+            while True:
+                try:
+                    await self.event.reply(
+                        text=f'{torrent.name}\n'
+                             f'{cmt}\n'
+                             f'{torrent.info_hash}'
+                    )
+                    break
+                except (
+                    TelegramRetryAfter, TelegramBadRequest
+                ) as exc:
+                    tm = bot.get_retry_timeout(exc)
+
+                    await asyncio.sleep(tm+random.randint(0, 5))
+
         except Exception as exc:
             logger.info(f'{exc=}')
             pass
-
-        torrent_status = dp.torrents[torrent.info_hash]
-        torrent_status.in_work = True
 
         # def reply_callback():
         #     return self.event.reply(

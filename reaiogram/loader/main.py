@@ -4,9 +4,9 @@ import asyncio
 from aiohttp import web
 from aiogram.webhook.aiohttp_server import (
     setup_application,
-    TokenBasedRequestHandler,
+    # TokenBasedRequestHandler,
     SimpleRequestHandler,
-    ip_filter_middleware,
+    # ip_filter_middleware,
 )
 
 from aiogram.types import FSInputFile

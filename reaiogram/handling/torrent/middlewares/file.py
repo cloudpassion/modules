@@ -27,7 +27,7 @@ from ....types.torrent.status import TorrentStatus
 #         @self.update.outer_middleware()
 
 async def parse_message_for_torrents(
-        handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[Update, Message, Dict[str, Any]], Awaitable[Any]],
         message: Message,
         data: Dict[str, Any]
 ) -> Any:
@@ -52,6 +52,8 @@ async def parse_message_for_torrents(
 
     await torrent.download_torrent_from_tg()
 
+    logger.info(f'{torrent.info_hash=}')
+
     if torrent.info_hash in (
             '3f6cca286969bd029d6096023bc90fc3fdbc2eae',
             '34af699d199c4b87d0602796acdf05a94975dabf',
@@ -74,7 +76,7 @@ async def parse_message_for_torrents(
         dp.torrents[torrent.info_hash] = torrent_status
 
     if torrent_status.in_work:
-        logger.info(f'skip {torrent.info_hash}, now in queue')
+        logger.info(f'skip {torrent.info_hash}, already in queue')
         try:
             await message.reply(
                 text=f'{torrent.name}\n'
@@ -89,6 +91,7 @@ async def parse_message_for_torrents(
 
     torrent_status.in_work = True
 
+    logger.info(f'{torrent=}')
     await torrent.save_to_django()
     await torrent.add_pieces_to_django()
 

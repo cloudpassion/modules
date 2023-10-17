@@ -36,7 +36,18 @@ class MyHTTPCache:
                 file_data = DataFile(headers_data)
                 file_data.save(save_data, update=update)
 
-        elif operation == 'load':
+            elif operation == 'load_server':
+
+                file_data = DataFile(headers_data)
+                js = file_data.load()
+
+                if js:
+                    _headers = js.get('server_headers')
+                else:
+                    return {}
+
+                return _headers
+
             file_data = DataFile(headers_data)
             js = file_data.load()
 
@@ -87,15 +98,25 @@ class MyHTTPCache:
         if not self.save_headers and not os.path.isfile(js_data.path):
             _status = 200
 
-        _headers = self.headers_detect(
-            'load', headers_data=f'{path}.{self.headers_file_postfix}'
-        )
+        request_headers = js.get('request_headers')
+        # request_headers = self.headers_detect(
+        #     'load',
+        #     headers_data=f'{path}.{self.headers_file_postfix}'
+        # )
+
+        server_headers = js.get('server_headers')
+        # server_headers = self.headers_detect(
+        #     'load_server',
+        #     headers_data=f'{path}.{self.headers_file_postfix}'
+        # )
 
         with open(path, 'rb') as crb:
             _content = crb.read()
 
         return MergeResp(
-            text='', content=_content, headers=_headers, status=_status,
+            text='', content=_content,
+            request_headers=request_headers, status=_status,
+            headers=server_headers,
             path=path, url=url, error=False,
         )
 
@@ -121,30 +142,36 @@ class MyHTTPCache:
                     with open(merge_resp.path, 'wb') as fw:
                         fw.write(merge_resp.content)
 
-                return
+                    return
 
             """ try save server_headers if request failed with not 200 http.code """
-            if merge_resp.headers and (save_headers or self.save_headers):
+            if (
+                    merge_resp.headers or merge_resp.request_headers
+            ) and (
+                    save_headers or self.save_headers
+            ):
 
-                file_data = DataFile(merge_resp.path)
+                file_data = DataFile(f'{merge_resp.path}.{self.headers_file_postfix}')
                 data = {
                     'status_code': merge_resp.status,
                     'request_headers': merge_resp.request_headers,
-                    'server_headers': {k: v for k, v in merge_resp.headers.items()},
+                    'server_headers': merge_resp.headers,
+                    #{k: v for k, v in merge_resp.headers.items()},
                 }
                 file_data.save(data, update=True)
 
     def save_after_resp(
-            self, merge_resp: MergeResp = None, update_cookies=False
+            self, merge_resp: MergeResp = None, update_cookies=False, save_content=True
     ):
 
         if not self.save_cache and not self.save_headers:
             return
 
         if merge_resp:
-            self.save_content(
-                save_resp=self.save_cache, save_headers=self.save_headers,
-                merge_resp=merge_resp)
+            if save_content:
+                self.save_content(
+                    save_resp=self.save_cache, save_headers=self.save_headers,
+                    merge_resp=merge_resp)
 
             _headers = merge_resp.request_headers
             _set_cookies = '; '.join(

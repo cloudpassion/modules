@@ -7,10 +7,11 @@ import time
 import psutil
 import tracemalloc
 
+from operator import itemgetter
 from typing import BinaryIO
 from pathlib import Path
 from io import BytesIO
-from aiogram.exceptions import TelegramRetryAfter
+from aiogram.exceptions import TelegramRetryAfter, TelegramBadRequest
 from aiogram.types import BufferedInputFile, InputFile
 
 from atiny.reos.dir.create import create_dir
@@ -60,14 +61,12 @@ async def new_client(client):
     return client
 
 
-class TorrentGrabVersion5(
+class TorrentGrabVersion6(
     DefaultTorrent,
     AbstractMergedTelegram
 ):
 
     async def check_complete_for_grab5(self):
-
-        logger.info(f'start check')
 
         redis_hashes = []
         missing_pieces = set(self.metadata.pieces)
@@ -100,13 +99,13 @@ class TorrentGrabVersion5(
 
         return missing_pieces
 
-    async def grab_torrent_from_telegram_version5(
+    async def grab_torrent_from_telegram_version6(
             self,
             out_dir,
-            version=5
+            version=6
     ):
 
-        create_dir(out_dir)
+        # create_dir(out_dir)
         # messages = DjangoTgMessage.objects.filter(caption=)
         # dj_documents = DjangoTgDocument.objects.all()
         # documents = [
@@ -117,8 +116,9 @@ class TorrentGrabVersion5(
         #
         # logger.info(f'{len(documents)}')
 
-        all_messages = DjangoTgMessage.objects.filter().all()
-
+        # all_messages = DjangoTgMessage.objects.filter().all()
+        #
+        # logger.info(f'g.{len(all_messages)=}')
         # cache variant
         # with open('.txt_ids', 'r') as ir:
         #     ids = [int(x.splitlines()[0]) for x in ir.readlines()]
@@ -129,14 +129,15 @@ class TorrentGrabVersion5(
         # life variant
 
         # all docs in db
-        dj_documents = DjangoTgDocument.objects.all()
+        # dj_documents = DjangoTgDocument.objects.all()
+        # logger.info(f'g.{len(dj_documents)=}')
 
         # all pieces in db by torrent
         dj_pieces = DjangoTorrentPiece.objects.filter(
             torrent=await self.from_orm(),
             # version=6,
         )
-        logger.info(f'{len(dj_pieces)=}')
+        logger.info(f'g.{len(dj_pieces)=}')
 
         # docs name for txt message search
         # dji_docs_names = [
@@ -239,30 +240,63 @@ class TorrentGrabVersion5(
                     logger.info(f'no: {dj_piece=}, {doc=}')
                     pieces_to_delete.append(dj_piece)
 
+                if dj_piece.info_hash in exist_pieces_hashes:
+                    logger.info(f'{dj_piece.info_hash} exist in tree')
+                    continue
+
                 dict_files[txt_name] += f'{dj_piece.begin}|' \
                                         f'{dj_piece.length}|' \
                                         f'{dj_piece.info_hash}\n'
 
             for n, d in dict_files.items():
+                if not d:
+                    logger.info(f'skip file:{n=}')
+                    continue
+
                 files.append([n, d.encode('utf8')])
 
-            return files
+            return sorted(files, key=itemgetter(0))
 
-        dj_all_txt_bytes = [
-            [
-                name, data
-            ] for name, data in await gen_txt_files_from_orm()
-        ]
+        new_tree = True
+        for check_func in (
+                os.path.isfile,
+                os.path.islink,
+                os.path.isdir,
+        ):
+            try:
+                if check_func(f'{out_dir}/{self.name}'):
+                    new_tree = False
+                    logger.info(f'new_tree = False')
+            except Exception as exc:
+                log_stack.error('ch')
 
-        logger.info(f'{len(dj_all_txt_bytes)=}')
+        exist_pieces_hashes = []
+        if not new_tree:
+            logger.info(f'start check available.1')
+            available_pieces = self.yield_available_pieces(out_dir)
+            logger.info(f'start check available.2')
+            exist_pieces_hashes = [from_bytes_to_hex(p.hash) for p in available_pieces]
+            logger.info(f'checked available')
+            # logger.info(f'{available_pieces=}')
+            # logger.info(f'{exist_pieces_hashes=}')
+
+        # dj_all_txt_bytes = [
+        #     [
+        #         name, data
+        #     ] for name, data in await gen_txt_files_from_orm()
+        # ]
+
+        dj_all_txt_bytes = await gen_txt_files_from_orm()
+
+        logger.info(f'g.{len(dj_all_txt_bytes)=}')
 
         if pieces_to_delete:
             logger.info(f'{pieces_to_delete=}')
             logger.info(f'{len(pieces_to_delete)=}')
-            logger.info(f'redown')
-            for piece in pieces_to_delete:
-                piece: DjangoTorrentPiece
-                piece.delete()
+            logger.info(f'redown: {self.info_hash=}')
+            # for piece in pieces_to_delete:
+            #     piece: DjangoTorrentPiece
+            #     piece.delete()
 
             return
 
@@ -299,46 +333,44 @@ class TorrentGrabVersion5(
         all_txt_bytes = dj_all_txt_bytes
         ln = len(all_txt_bytes)
         # quit()
-        new_tree = True
+
+        logger.info(f'g.f:{new_tree=}')
         t = 0
+        split_files = 5
         while all_txt_bytes:
 
             t += 1
 
-            split = 11
             some_txt_bytes = []
 
-            logger.info(f'{t}/{int(ln/split)}')
-            for _ in range(0, split):
+            split = 0
+            while True:
+
+                split += 1
+                pop = all_txt_bytes.pop()
+                some_txt_bytes.append(pop)
+
+                name, data = pop
+
                 try:
-                    pop = all_txt_bytes.pop()
-                    # name, data = pop
-                    # logger.info(f'{pop=}')
-                    # if b'7b9c6609f2bee84a2d7618191e797c252aae8baf' in data:
-                    #     some_txt_bytes.append(pop)
-                    #
-                    # if b'59286e3d01243e6d01fa82d37e36be4030bf0354' in data:
-                    #     some_txt_bytes.append(pop)
-                    #
-                    some_txt_bytes.append(pop)
+                    new_pop = all_txt_bytes[-1]
                 except IndexError:
-                    pass
+                    split = split_files
+                    break
+
+                new_name, new_data = new_pop
+
+                if name != new_name and split >= split_files:
+                    break
+
+            logger.info(f'{t}/{int(ln/split)+1}')
 
             if not some_txt_bytes:
                 continue
 
-            # logger.info(f'{some_txt_bytes=}')
-
-            # while t < 24:
-            #     t += 1
-            #     logger.info(f'skip {t=}')
-            #
-            # if t > 29:
-            #     break
-
             while True:
                 try:
-                    await self._merge_some_version5(
+                    await self._merge_some_version6(
                         txt_bytes=some_txt_bytes,
                         dj_pieces=dj_pieces,
                         out_dir=out_dir,
@@ -364,7 +396,7 @@ class TorrentGrabVersion5(
         logger.info(f'end merging: {self.info_hash}')
         return True
 
-    async def _merge_some_version5(
+    async def _merge_some_version6(
             self,
             txt_bytes,
             dj_pieces,
@@ -374,9 +406,141 @@ class TorrentGrabVersion5(
 
         client = None
 
+        async def download_task(
+                size,
+                file_bytes,
+                txt_file,
+                document
+        ):
+
+            if size <= 20971520:
+                # logger.info(f'download')
+                while True:
+                    try:
+                        file_bytes[txt_file] = await self.bot.download(
+                            document.file_id
+                        )
+                        break
+                    except (
+                        TelegramRetryAfter, TelegramBadRequest
+                    ) as exc:
+                        tm = self.bot.get_retry_timeout(exc)
+
+                        self.dp.wait_upload = tm
+                        logger.info(f'sleep {tm=}')
+                        await asyncio.sleep(tm+random.randint(2, 10))
+                        self.dp.wait_upload = 0
+                    except Exception as exc:
+                        logger.info(f'{exc=}'[:512])
+                        await asyncio.sleep(20)
+
+                # with open(tmp_path, 'wb') as f:
+                #     f.write(file_bytes[txt_file].read())
+                #
+                # file_bytes[txt_file].seek(0)
+            else:
+                logger.info(f'rewrite')
+                return
+                #
+                # async def sleep_send(file_id):
+                #     # await asyncio.sleep(2)
+                #     await self.bot.send_document(
+                #         TG_CHAT_ID, file_id, caption=info_hash
+                #     )
+                #
+                # if not client:
+                #     client = await new_client(None)
+                #
+                # # asyncio.create_task(
+                # await sleep_send(document.file_id)
+                # # )
+                # await asyncio.sleep(2)
+                #
+                # del_ids = []
+                #
+                # while True:
+                #     try:
+                #         messages = await client.get_messages((await self.bot.me()).id)
+                #         break
+                #     except Exception as exc:
+                #         logger.info(f'{exc=}'[:512])
+                #         client = await new_client(client)
+                #         continue
+                #
+                # while True:
+                #     try:
+                #         msg = messages.pop()
+                #         await asyncio.sleep(0)
+                #     except IndexError:
+                #         try:
+                #             messages = await client.get_messages((await self.bot.me()).id)
+                #             break
+                #         except Exception as exc:
+                #             logger.info(f'{exc=}')
+                #             client = await new_client(client)
+                #
+                #         continue
+                #
+                #     # logger.info(f'{msg=}\n{dir(msg)=}')
+                #     # await asyncio.sleep(2)
+                #     # if not hasattr(msg, 'caption'):
+                #     #     del_ids.append(msg.id)
+                #     #     await asyncio.sleep(1)
+                #     #     continue
+                #
+                #     if not msg.message:
+                #         del_ids.append(msg.id)
+                #         continue
+                #
+                #     if info_hash not in msg.message:
+                #         del_ids.append(msg.id)
+                #         continue
+                #
+                #     # file_data = ()
+                #     while True:
+                #         try:
+                #             # file_data = BinaryIO()
+                #             blob = await client.download_media(
+                #                 msg, file=bytes
+                #             )
+                #             # logger.info(f'{file_data=}')
+                #             # logger.info(f'{blob=}')
+                #             file_data = BytesIO(blob)
+                #             # file_data.read()
+                #             # file_data.seek(0)
+                #             break
+                #         except Exception as exc:
+                #
+                #             # await client.close()
+                #             client = new_client(client)
+                #             logger.info(f'{exc=}'[:512])
+                #             await asyncio.sleep(20)
+                #
+                #     # with open(tmp_path, 'wb') as f:
+                #     #     f.write(file_data.read())
+                #
+                #     file_data.seek(0)
+                #     break
+                #
+                # try:
+                #     await client.delete_messages(TG_CHAT_ID, del_ids)
+                # except Exception as exc:
+                #     logger.info(f'{exc=}')
+                #     client = new_client(client)
+                #     logger.info(f'{exc}')
+                #     await asyncio.sleep(20)
+                #
+                # file_bytes[txt_file] = file_data
+
         file_bytes = {}
+        tasks = []
+
         for txt in txt_bytes:
             txt_file, txt_bt = txt
+
+            if file_bytes.get(txt_file):
+                logger.info(f'file.skip: {txt_file=}')
+                continue
 
             l = len(re.findall('_', txt_file))
             if l == 1:
@@ -404,113 +568,13 @@ class TorrentGrabVersion5(
             #     continue
 
             size = document.file_size
-            if size <= 20971520:
-                # logger.info(f'download')
-                while True:
-                    try:
-                        file_bytes[txt_file] = await self.bot.download(
-                            document.file_id
-                        )
-                        break
-                    except Exception as exc:
-                        logger.info(f'{exc=}'[:512])
-                        await asyncio.sleep(20)
 
-                # with open(tmp_path, 'wb') as f:
-                #     f.write(file_bytes[txt_file].read())
-                #
-                # file_bytes[txt_file].seek(0)
-            else:
+            task = asyncio.create_task(
+                download_task(size, file_bytes, txt_file, document)
+            )
+            tasks.append(task)
 
-                async def sleep_send(file_id):
-                    # await asyncio.sleep(2)
-                    await self.bot.send_document(
-                        TG_CHAT_ID, file_id, caption=info_hash
-                    )
-
-                if not client:
-                    client = await new_client(None)
-
-                # asyncio.create_task(
-                await sleep_send(document.file_id)
-                # )
-                await asyncio.sleep(2)
-
-                del_ids = []
-
-                while True:
-                    try:
-                        messages = await client.get_messages((await self.bot.me()).id)
-                        break
-                    except Exception as exc:
-                        logger.info(f'{exc=}'[:512])
-                        client = await new_client(client)
-                        continue
-
-                while True:
-                    try:
-                        msg = messages.pop()
-                        await asyncio.sleep(0)
-                    except IndexError:
-                        try:
-                            messages = await client.get_messages((await self.bot.me()).id)
-                            break
-                        except Exception as exc:
-                            logger.info(f'{exc=}')
-                            client = await new_client(client)
-
-                        continue
-
-                    # logger.info(f'{msg=}\n{dir(msg)=}')
-                    # await asyncio.sleep(2)
-                    # if not hasattr(msg, 'caption'):
-                    #     del_ids.append(msg.id)
-                    #     await asyncio.sleep(1)
-                    #     continue
-
-                    if not msg.message:
-                        del_ids.append(msg.id)
-                        continue
-
-                    if info_hash not in msg.message:
-                        del_ids.append(msg.id)
-                        continue
-
-                    # file_data = ()
-                    while True:
-                        try:
-                            # file_data = BinaryIO()
-                            blob = await client.download_media(
-                                msg, file=bytes
-                            )
-                            # logger.info(f'{file_data=}')
-                            # logger.info(f'{blob=}')
-                            file_data = BytesIO(blob)
-                            # file_data.read()
-                            # file_data.seek(0)
-                            break
-                        except Exception as exc:
-
-                            # await client.close()
-                            client = new_client(client)
-                            logger.info(f'{exc=}'[:512])
-                            await asyncio.sleep(20)
-
-                    # with open(tmp_path, 'wb') as f:
-                    #     f.write(file_data.read())
-
-                    file_data.seek(0)
-                    break
-
-                try:
-                    await client.delete_messages(TG_CHAT_ID, del_ids)
-                except Exception as exc:
-                    logger.info(f'{exc=}')
-                    client = new_client(client)
-                    logger.info(f'{exc}')
-                    await asyncio.sleep(20)
-
-                file_bytes[txt_file] = file_data
+        await asyncio.gather(*tasks)
 
         # logger.info(f'{file_bytes=}')
 

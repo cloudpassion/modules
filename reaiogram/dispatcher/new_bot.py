@@ -22,12 +22,12 @@ class NewBotDispatcher(
     wait_upload = 0
     upload_bot: Bot
     upload_bots: List[Bot]
-    upload_sem = asyncio.Semaphore(15)
+    upload_sem = asyncio.Semaphore(8)
     upload_close = AsyncLimiter(1, time_period=10)
     upload_close_wait = False
 
-    upload_at_minute = AsyncLimiter(39)
-    # upload_at_second = AsyncLimiter(2, time_period=1)
+    upload_at_minute = AsyncLimiter(60)
+    upload_at_second = AsyncLimiter(2, time_period=1)
 
     def _new_bot(self):
         # bot = Bot(self.bot.token, parse_mode="HTML")
@@ -50,14 +50,37 @@ class NewBotDispatcher(
         return bot
 
     async def put_upload_bot(self, bot):
-        self.upload_bots.append(bot)
+        # try:
+        #     bot.session.close()
+        # except Exception as exc:
+        #     logger.info(f'{exc=}')
+
+        try:
+            await bot.session.close()
+            try:
+                del bot.session
+            except Exception as exc:
+                logger.info(f'{exc=}')
+
+            try:
+                del bot
+            except Exception as exc:
+                logger.info(f'{exc=}')
+
+        except Exception as exc:
+            logger.info(f'{exc=}')
+
+        #self.upload_bots.append(bot)
 
     async def new_upload_bot(self, bot):
 
-        try:
-            self.upload_bots.pop(self.upload_bots.index(bot))
-        except (IndexError, ValueError):
-            pass
+        # try:
+        #     self.upload_bots.pop(self.upload_bots.index(bot))
+        # except (IndexError, ValueError):
+        #     pass
+
+        await self.put_upload_bot(bot)
+        return await self.get_upload_bot()
 
         await asyncio.sleep(random.randint(1, 10))
 

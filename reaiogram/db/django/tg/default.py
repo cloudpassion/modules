@@ -1,4 +1,5 @@
 import asyncio
+import copy
 
 import django.db.utils
 import re
@@ -99,6 +100,7 @@ class DefaultDjangoTgORM(
                       fetchrow: bool = False,
                       execute: bool = False
                       ):
+        logger.info(f'1: {comm}')
         async with self.pool.acquire() as connection:
             connection: Connection
             async with connection.transaction():
@@ -127,6 +129,7 @@ class DefaultDjangoTgORM(
 
     def get_default_select(self, data):
         # logger.info(f'{data=}, {dir(data)}')
+        # logger.info(f'{data.select_keys}')
         select_kwargs = {}
         for key in data.select_keys:
             select_kwargs[key] = getattr(data, key)
@@ -177,14 +180,18 @@ class DefaultDjangoTgORM(
             ],
     ):
 
+        # logger.info(f'{data=}')
+
         if not hasattr(data, 'select'):
             self.set_select(data, self.get_default_select(data))
+
+        # logger.info(f'{data.select=}')
 
         try:
             select_one = await sync_to_async(
                 db_class.objects.filter(**data.select).first)()
         except Exception:
-            # log_stack.error(f'select: {id=}')
+            log_stack.error(f'select: {data.select=}, {data=}')
             # quit()
             return
 
@@ -284,9 +291,20 @@ class DefaultDjangoTgORM(
         # logger.info(f'{db_kwargs=}, {db_class}')
             return await sync_to_async(db_class(**db_kwargs).save)()
 
-        self.set_select(data, {'db_hash': db_kwargs['db_hash']}, set_keys=True)
-        db = await self.select_one(data, db_class)
+        try:
+            data_copy = copy.deepcopy(data)
+        except Exception as exc:
+            data_copy = copy.copy(data)
+
+        # logger.info(f'{db_hash_check=}, {data.select=}')
+        # select_bk = None
+        # if hasattr(data, 'select'):
+        #     select_bk = data.select
+
+        self.set_select(data_copy, {'db_hash': db_kwargs['db_hash']}, set_keys=True)
+        db = await self.select_one(data_copy, db_class)
         if db:
+            # self.set_select(data, {})
             return db
 
         # logger.info(f'update history? {db_kwargs=}')
@@ -300,6 +318,7 @@ class DefaultDjangoTgORM(
     ):
         test_d = {}
 
+        logger.info(f'bulk_start, {len(data)=}')
         all_data = []
         for obj in data:
             # if not hasattr(data, 'select'):
@@ -315,6 +334,7 @@ class DefaultDjangoTgORM(
             # logger.info(f'{db_kwargs=}')
             all_data.append(db_class(**db_kwargs.copy()))
 
+        logger.info(f'bulk_end.1, {len(data)=}')
         # logger.info(f'{objects=}')
         return await sync_to_async(db_class.objects.bulk_create)(all_data)
 
@@ -332,7 +352,9 @@ class DefaultDjangoTgORM(
             ],
     ):
 
+        # logger.info(f'{data=}, {db_class=}')
         db = await self.select_one(data=data, db_class=db_class)
+        # logger.info(f'{db=}')
 
         if not db:
 
@@ -342,6 +364,7 @@ class DefaultDjangoTgORM(
 
         updated = False
         for key in data.db_keys:
+
             try:
                 db_value = getattr(db, key)
             except AttributeError:
@@ -352,14 +375,16 @@ class DefaultDjangoTgORM(
             except AttributeError:
                 new_value = None
 
-            # logger.info(f'{key=}, {db_value=} -> {new_value=}')
             if db_value != new_value:
+                # logger.info(f'{key=}, {db_value=} -> {new_value=}')
                 updated = True
                 setattr(db, key, new_value)
 
         if updated:
 
-            db_kwargs = self.gen_db_kwargs(data, db_class)
+            # db_kwargs = self.gen_db_kwargs(data, db_class)
+            # db_kwargs = self.gen_db_kwargs(db, db_class)
+            db_kwargs = self.gen_db_kwargs(data, db_class, key_prefix='_to_db_')
             # db_kwargs = {
             #     key: getattr(
             #         db, key
@@ -370,7 +395,8 @@ class DefaultDjangoTgORM(
                 db, 'db_hash',
                 self.calc_hash(db_class=db_class, db_kwargs=db_kwargs)
             )
-            return await sync_to_async(db.save)()
+            d = await sync_to_async(db.save)()
+            return d
 
         return db
 

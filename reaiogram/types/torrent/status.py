@@ -16,6 +16,7 @@ class TorrentStatus:
 
     def from_work(self):
         self.in_work = False
+        self.missing = 0
 
     def is_work(self):
         return self.in_work

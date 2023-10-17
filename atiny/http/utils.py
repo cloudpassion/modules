@@ -24,7 +24,32 @@ class MyHttpUtils:
     def get_ua(self):
         return 'Mozilla/5.0 (X11; Linux x86_64; rv:76.0) Gecko/20100101 Firefox/76.0'
 
-    def make_path(self, url, tmp_dir='.'):
+    def make_path(
+            self, url, tmp_dir='.', version=1, data=''
+    ):
+        if version == 2:
+
+            method = url.split(' ')[0]
+            url = url.replace(f'{method} ', '')
+            # scheme = url.split(':')[0]
+            host = url.split('/')[2]
+            # path = url.split('/')[3]
+
+            if url:
+                ret = url.replace(':', '.').replace('?', '.').replace('/', '.').replace('&', '.')[0:200]
+            else:
+                ret = None
+
+            if data:
+                data = data.replace(':', '.').replace('?', '.').replace('/', '.').replace(
+                    '&', '.'
+                ).replace(']', '').replace('[', '').replace('{', '').replace('}', '')
+                ret = f'{ret}{data}'
+
+            return f'{tmp_dir}/{host}/{method}/{ret}'[0:200] if tmp_dir and isinstance(
+                tmp_dir, str
+            ) and isinstance(ret, str) else ret
+
         if url:
             ret = url.replace(':', '.').replace('?', '.').replace('/', '.').replace('&', '.')[0:200]
         else:

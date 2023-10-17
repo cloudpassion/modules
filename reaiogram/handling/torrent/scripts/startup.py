@@ -1,5 +1,7 @@
+import time
 import asyncio
 import random
+import redis
 
 from aiogram.types import BufferedInputFile
 from aiogram.types.message import Message
@@ -17,7 +19,7 @@ from ....django_telegram.django_telegram.datamanager.models import (
 
     TgChat, TgMessage, TgUser
 )
-from ....types.torrent.torrent import TorrentFile
+from ....types.torrent.torrent import TorrentFile, TorrentPiece
 from ....types.torrent.status import TorrentStatus
 from ....types.tg.message import MergedTelegramMessage
 
@@ -43,11 +45,23 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
     to_download = []
     to_index = []
     to_count = []
+    to_begin = []
+    to_download_hashes = []
 
     for dj_torrent in reversed(torrents):
 
         # if len(to_download) >= 2:
         #     break
+
+        if dj_torrent.info_hash in (
+                '3516ff33b536137738558904da6ec1e340059132',
+                '0c0d0702014a4720d5cb226fb3f052f2494928c6',
+                '014170792ca2e87dff09064895299ca8d5ad6712',
+                '7c7d2bd191b648091f93efd468044ba3114a03df',
+                'e971e0cf284158b079a48de14d938cdda5ff852d',
+        ):
+            logger.info(f'temp skip: {dj_torrent.name}')
+            continue
 
         if dj_torrent.info_hash in (
                 '3f6cca286969bd029d6096023bc90fc3fdbc2eae',
@@ -120,29 +134,35 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
                 to_download.append(dj_torrent)
                 break
 
+            if piece.message and not piece.begin and not piece.length:
+                to_begin.append(dj_torrent)
+                break
+
 
         else:
             dj_torrent.redown_skip = True
             dj_torrent.save()
 
             # log here
-            # while True:
-            if True:
+            while True:
+            # if True:
                 try:
                     await bot.send_message(
                         chat_id=secrets.bt.chat.download.id,
                         message_thread_id=secrets.bt.chat.download.thread_id,
-                        text=f'{dj_torrent.name}\n'
+                        text=f'rd_complete\n'
+                             f'{dj_torrent.name}\n'
                              f'{dj_torrent.info_hash}\n\n'
-                             f'complete'
                     )
+                    break
                 except Exception as exc:
                     logger.info(f'{exc=}')
-                    await asyncio.sleep(random.randint(10,20))
+                    await asyncio.sleep(random.randint(10, 20))
                     # continue
                 #
                 # break
 
+    # [logger.info(f'{x.name}\n') for x in to_begin]
 
     # logger.info(f'{len(to_index)=}')
     # quit()
@@ -150,6 +170,7 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
 
     for dwn in to_download:
 
+        to_download_hashes.append(dwn.info_hash)
         if dwn.message:
             try:
                 message = await bot.forward_message(
@@ -190,7 +211,8 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
         old_kwargs['from_user'] = {}
 
         old_kwargs.update({
-            'date': message.forward_date,
+            'date': int(time.strftime('%s')),
+            # 'date': message.forward_date,
             'message_id': dwn.message.id,
             'thread_id': dwn.message.thread_id
         })
@@ -284,10 +306,50 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
 
                 dj_piece.save()
 
+        # continue
         await torrent.add_pieces_to_django()
 
         asyncio.create_task(
             torrent.download_some_pieces(version=6)
         )
 
-    logger.info(f'end torrent downloading continue')
+    logger.info(f'end torrent downloading check. fp')
+
+    logger.info(f'start redis check')
+
+    redown = []
+
+    r = redis.Redis(host='localhost', port=6379, db=12)
+    keys = r.keys('*')
+    logger.info(f'{len(keys)=}')
+
+    in_redis = []
+    for _i_h in keys:
+        # continue
+        i_h = _i_h.decode('utf8')
+        h = i_h.split('_')[1]
+
+        piece = DjangoTorrentPiece.objects.filter(info_hash=h).first()
+        if not piece:
+            continue
+
+        torrent = piece.torrent
+        if torrent.info_hash in to_download_hashes:
+            if torrent not in in_redis:
+                in_redis.append(torrent)
+            continue
+
+        if torrent not in redown:
+            redown.append(torrent)
+            logger.info(f'redown: {torrent.info_hash=}')
+
+        if torrent in redown:
+            continue
+
+        logger.info(f'delete {piece=}')
+
+    logger.info(f'{redown=}')
+    for _inr in in_redis:
+        logger.info(f'{_inr.name=}')
+
+    logger.info(f'end torrent downloading startup script')

@@ -35,6 +35,7 @@ from .download.version10 import TorrentDownloadVersion10
 
 from .grab.version5 import TorrentGrabVersion5
 from .grab.version5_1 import TorrentGrabVersion5_1
+from .grab.version6 import TorrentGrabVersion6
 
 
 class TorrentFile(
@@ -49,6 +50,7 @@ class TorrentFile(
 
     TorrentGrabVersion5,
     TorrentGrabVersion5_1,
+    TorrentGrabVersion6,
 ):
 
     async def download_torrent_from_tg(self, file_id=None):
@@ -92,6 +94,11 @@ class TorrentFile(
 
         piece = DjangoTorrentPiece()
         torrent = await self.from_orm()
+
+        logger.info(f'{torrent=}')
+
+        if not torrent:
+            quit()
 
         self.orm.set_select(
             data=piece,
@@ -150,11 +157,12 @@ class TorrentFile(
             #     logger.info(f'continue {piece.index=}')
                 continue
 
+            piece._to_db_torrent = torrent
+
             task = asyncio.create_task(
                 piece._convert_to_orm(skip_to_db=True, only_set=True)
             )
             tasks.append(task)
-            piece._to_db_torrent = torrent
 
             # await piece._convert_to_orm(
             #     skip_to_db=True, only_set=True
@@ -188,9 +196,11 @@ class TorrentFile(
             return
 
         ms_ps = await self.check_complete_for_grab5()
+        logger.info(f'{len(ms_ps)=}')
         if ms_ps:
-            logger.info(f'{len(ms_ps)=}')
             return
+
+        logger.info(f'check complete: {version=}')
 
         root_dir = '/exm/wd1000blk/temp_tg'
         create_dir(root_dir)
@@ -200,16 +210,24 @@ class TorrentFile(
         create_dir(out_dir)
 
         if isinstance(version, int):
-            if 5 <= version <= 6:
-                await self.grab_torrent_from_telegram_version5(
+            if version == 6:
+                resp = await self.grab_torrent_from_telegram_version6(
+                    out_dir=out_dir,
+                    version=version
+                )
+            if version == 5:
+                resp = await self.grab_torrent_from_telegram_version5(
                     out_dir=out_dir,
                     version=version
                 )
         else:
             if version == '5_1':
-                await self.grab_torrent_from_telegram_version5_1(
+                resp = await self.grab_torrent_from_telegram_version5_1(
                     out_dir=out_dir,
                 )
+
+        logger.info(f'ret resp')
+        return resp
 
     async def download_some_pieces(
             self,
@@ -249,6 +267,11 @@ class TorrentFile(
                 log_stack.error('ch log')
                 logger.info(f'check log {exc=}')
             # )
+
+        logger.info(f'2.set_status: {self.info_hash=}')
+        torrent_status = self.dp.torrents[self.info_hash]
+        torrent_status.from_work()
+        # torrent_status.in_work = False
 
         logger.info(f'mb dwn ended {self.info_hash=}')
 

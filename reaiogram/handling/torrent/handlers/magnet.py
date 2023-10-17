@@ -1,9 +1,12 @@
+import re
+import random
 import asyncio
 
 from aiogram import F
 from aiogram.types import BufferedInputFile
 from aiogram.handlers import BaseHandler
 from aiogram.types import Message
+from aiogram.exceptions import TelegramRetryAfter, TelegramBadRequest
 
 from config import secrets
 from log import logger
@@ -68,12 +71,21 @@ class TorrentMagnetHandler(BaseHandler):
             filename=f'{torrent.name}.torrent'
         )
 
-        await bot.send_document(
-            chat_id=event.chat.id,
-            document=doc,
-            reply_to_message_id=event.message_id,
-            caption='test'
-        )
+        while True:
+            try:
+                await bot.send_document(
+                    chat_id=event.chat.id,
+                    document=doc,
+                    reply_to_message_id=event.message_id,
+                    caption='test'
+                )
+                break
+            except (
+                TelegramRetryAfter, TelegramBadRequest
+            ) as exc:
+                tm = bot.get_retry_timeout(exc)
+
+                await asyncio.sleep(tm+random.randint(0, 5))
         #
         # torrent_status = dp.torrents[torrent.info_hash]
         # torrent_status.in_work = True
