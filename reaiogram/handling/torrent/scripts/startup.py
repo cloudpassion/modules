@@ -71,11 +71,13 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
                 'a31d032ee7454a3620c1b02ded773a9e6734afd6',
                 'b851474b74f65cd19f981c723590e3e520242b97',
         ):
+            logger.info(f'{dj_torrent.name} skip 2')
             continue
 
         if dj_torrent.info_hash in (
             '4c149ff07560b61d9899358a1f058ddc4f130094'
         ):
+            logger.info(f'{dj_torrent.name} skip 2')
             continue
 
         if dj_torrent.info_hash in (
@@ -92,7 +94,7 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
             continue
 
         if dj_torrent.redown_skip:
-            logger.info(f'rd: {dj_torrent.name} skip')
+            # logger.info(f'rd: {dj_torrent.name} skip')
             continue
 
         # test
@@ -325,7 +327,10 @@ async def continue_torrent_downloading(dp: Dispatcher, bot: Bot):
 
     in_redis = []
     for _i_h in keys:
-        # continue
+        break
+        if len(keys) > 500:
+            break
+
         i_h = _i_h.decode('utf8')
         h = i_h.split('_')[1]
 

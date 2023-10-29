@@ -17,6 +17,7 @@ from log import logger, log_stack
 
 from ..default import DefaultTorrent
 from ....encoding.stuff import from_bytes_to_hex
+from ...stuff.check import redis_memory_wait
 from .resurge import (
     make_chunks,
     Chunk
@@ -29,23 +30,29 @@ LIMITER = {
 
 
 async def chunk_task(
-        n, chunk: Chunk, folder, loop, limiter
+        n, chunk: Chunk, folder, loop, limiter, redis, info_hash, piece
 ):
 
-    # if True:
+    #if True:
+    async with limiter[folder]:
+        await redis_memory_wait(
+            r=redis,
+            more_total=piece.length*50,
+            info=f'put, {info_hash}',
+        )
     # async with limiter[folder]:
-    if True:
+    # if True:
         # chunk: Chunk
         try:
             # ch = chunk.read(folder)
-            # ch = await chunk.aio_read(folder)
+            ch = await chunk.aio_read(folder)
 
-            ch = await loop.run_in_executor(
-                None, functools.partial(
-                    chunk.read,
-                    folder
-                )
-            )
+            # ch = await loop.run_in_executor(
+            #     None, functools.partial(
+            #         chunk.read,
+            #         folder
+            #     )
+            # )
 
             # try:
             #     logger.info(f'{len(ch)}, {len(dt)}')
@@ -56,7 +63,8 @@ async def chunk_task(
             # data.append(ch)
 
             return n, ch
-        except FileNotFoundError:
+        except FileNotFoundError as exc:
+            logger.info(f'{exc=}')
             return
         except Exception as exc:
             log_stack.error('ch')
@@ -81,7 +89,8 @@ async def piece_check_task(
         if True:
             # logger.info(3)
             # logger.info(f'{limiter.get(info_hash)=}')
-            async with limiter[folder]:
+            if True:
+            # async with limiter[folder]:
             # async with limiter[info_hash]:
                 # async with limiter[f'{folder}_{from_bytes_to_hex(piece.hash)}']:
     #         async with limiter[info_hash]:
@@ -111,11 +120,23 @@ async def piece_check_task(
                     # # logger.info(f'{len(results)=}')
                     results = []
                     for _n, _chunk in enumerate(chunk_pieces):
-                        res = await chunk_task(_n, _chunk, folder, loop, limiter)
-                        results.append(res)
+
+                        if True:
+                        # async with limiter[folder]:
+                        #     await redis_memory_wait(
+                        #         r=redis,
+                        #         more_total=piece.length*50,
+                        #         info=f'put, {info_hash}',
+                        #     )
+                            res = await chunk_task(
+                                _n, _chunk, folder, loop, limiter,
+                                redis, info_hash, piece
+                            )
+                            results.append(res)
+
+                    # logger.info(f'{len(results)=}, {info_hash=}')
 
                     while True:
-                        await asyncio.sleep(0)
                         try:
                             pop = results.pop()
                         except IndexError:
@@ -125,31 +146,23 @@ async def piece_check_task(
                             return
 
                         x, _ch = pop
-                        if not _ch:
+                        if _ch is None:
+                        # if not _ch:
+                            logger.info(f'h4, {x=}, {pop=}')
                             return
 
-                        try:
-                            if len(_ch) == 0:
-                                logger.info(f'{len(_ch)=}, {piece.index=}, {from_bytes_to_hex(torrent.info_hash)=}')
-                                return
-                        except Exception:
-                            log_stack.error(f'{piece.index=}, {from_bytes_to_hex(torrent.info_hash)=}')
-                            return
+                        # try:
+                        #     if len(_ch) == 0:
+                        #         logger.info(f'{len(_ch)=}, {piece.index=}, {from_bytes_to_hex(torrent.info_hash)=}')
+                        #         return
+                        # except Exception:
+                        #     log_stack.error(f'{piece.index=}, {from_bytes_to_hex(torrent.info_hash)=}')
+                        #     return
 
                         data[x] = _ch
 
                     bytes_data = b"".join(data)
                     if valid_piece_data(piece, bytes_data):
-
-                        piece_length = piece.length
-
-                        total = int(redis.memory_stats()['total.allocated'])
-                        # logger.info(f'{total=}, {max_memory=}')
-                        while total + piece_length * 50 > max_memory:
-                            logger.info(f'wait for free memory.put, {info_hash=}')
-                            await asyncio.sleep(150+30+random.randint(10, 20))
-                            # time.sleep(30 + random.randint(10, 20))
-                            total = int(redis.memory_stats()['total.allocated'])
 
                         # logger.info(f'put: {piece}, {self.info_hash}')
                         # asyncio.run(
@@ -190,9 +203,11 @@ class TorrentDefaultDownload(
 
         if True:
             if not m_pieces:
+                logger.info(f'not. {m_pieces=}, {info_hash=}')
                 return
 
-            max_memory = int(self.redis.config_get('maxmemory')['maxmemory'])
+            max_memory = 1
+            #int(self.redis.config_get('maxmemory')['maxmemory'])
 
             try:
                 null_data = b''.join([b'\x00' for _ in range(0, list(m_pieces)[0].length)])
@@ -216,8 +231,8 @@ class TorrentDefaultDownload(
                 #     torrent=torrent
                 # )
 
-                # task = asyncio.ensure_future(
-                task = asyncio.create_task(
+                task = asyncio.ensure_future(
+                # task = asyncio.create_task(
                     piece_check_task(
                         piece=_piece, m_pieces=m_pieces,
                         folder=folder, chunks=chunks,
@@ -253,7 +268,7 @@ class TorrentDefaultDownload(
         #     log_stack.error('asdfasdfa')
 
     async def dwn_tree_check(
-            self, torrent, missing_pieces, info_hash
+            self, torrent, missing_pieces, info_hash, ident
     ):
 
         # try:
@@ -267,10 +282,14 @@ class TorrentDefaultDownload(
             chunks = make_chunks(self.metadata.pieces, self.metadata.files)
             limiter = LIMITER
             if not limiter.get(info_hash):
+                logger.info(f'create limiter for {info_hash=}')
                 limiter[info_hash] = AsyncLimiter(
                     1,
-                    time_period=3600.0+float(
-                        random.randint(1200, 2400)
+                    # time_period=3600.0+float(
+                    #     random.randint(1200, 2400)
+                    # )
+                    time_period=900.0+float(
+                        random.randint(300, 600)
                     )
                 )
             # limiter = {
@@ -297,7 +316,7 @@ class TorrentDefaultDownload(
                         continue
 
                     if not limiter.get(folder):
-                        limiter[folder] = asyncio.Semaphore(2)
+                        limiter[folder] = asyncio.Semaphore(3)
 
                     # for _piece in set(missing_pieces):
                     #     k = f'{folder}_{from_bytes_to_hex(_piece.hash)}'
@@ -336,10 +355,12 @@ class TorrentDefaultDownload(
                     folder_tasks.extend(folder_task)
 
                 if not folder_tasks:
+                    logger.info(f'no tasks, {info_hash=}')
+                    await asyncio.sleep(60)
                     continue
 
                 # split = 10
-                logger.info(f'gather 1, {self.info_hash=}, {len(folder_tasks)=}')
+                logger.info(f'{ident}.gather 1, {info_hash=}, {len(folder_tasks)=}')
                 # while folder_tasks:
                 #
                 #     split_tasks = []
@@ -357,12 +378,18 @@ class TorrentDefaultDownload(
                 # async with limiter[info_hash]:
                 # async with limiter[folder]:
                 random.shuffle(folder_tasks)
+                # logger.info(f'gather 2.1, {self.info_hash=}, {len(folder_tasks)=}')
                 if True:
-                    logger.info(f'gather 2, {self.info_hash=}, {len(folder_tasks)=}')
                     async with limiter[info_hash]:
-                        await asyncio.gather(*folder_tasks)
+                        logger.info(f'{ident}.gather 2.2, {info_hash=}, {len(folder_tasks)=}')
+                        results = await asyncio.gather(*folder_tasks, return_exceptions=True)
+                        for res in results:
+                            if res:
+                                logger.info(f'{res=}, {self.info_hash=}')
 
-                logger.info(f'gather end, {self.info_hash=}, {len(folder_tasks)=}')
+                        logger.info(f'{ident}.gather end.1, {info_hash=}, {len(folder_tasks)=}')
+
+                logger.info(f'{ident}.gather end.2, {info_hash=}, {len(folder_tasks)=}')
                 # await asyncio.sleep(600+random.randint(300, 600))
         # except:
         #     log_stack.error('asdfasdf')

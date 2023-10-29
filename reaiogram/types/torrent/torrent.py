@@ -264,8 +264,8 @@ class TorrentFile(
             # asyncio.create_task(
                 await self._download_some_pieces_version6(callback=callback)
             except Exception as exc:
-                log_stack.error('ch log')
-                logger.info(f'check log {exc=}')
+                log_stack.error(f'ch log, {self.info_hash=}')
+                logger.info(f'check log {exc=}, {self.info_hash=}')
             # )
 
         logger.info(f'2.set_status: {self.info_hash=}')

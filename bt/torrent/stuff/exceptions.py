@@ -1,0 +1,3 @@
+
+class NotHaveTorrent(Exception):
+    pass

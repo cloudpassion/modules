@@ -52,7 +52,7 @@ class AbstractTorrentFile(ExtraBasedModel):
         max_length=16384, null=True, blank=True
     )
 
-    comment = models.CharField(max_length=1024, null=True, blank=True)
+    comment = models.CharField(max_length=32768, null=True, blank=True)
     created_by = models.CharField(max_length=1024, null=True, blank=True)
     creation_date = models.BigIntegerField(null=True, blank=True)
     #

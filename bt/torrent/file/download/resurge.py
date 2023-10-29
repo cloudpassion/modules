@@ -1,9 +1,12 @@
 import os
 import aiofiles
+import contextlib
 import asyncio
 import collections
 import dataclasses
 import random
+
+from surge.stream import Stream as DefaultStream
 
 from surge.metadata import (
     Chunk as DefaultChunk,
@@ -19,6 +22,8 @@ from surge.protocol import (
 )
 from surge.tracker import Peer as SurgePeer
 from ....encoding.stuff import from_bytes_to_hex
+from ...stuff.exceptions import NotHaveTorrent
+from ...stuff.check import redis_memory_wait
 
 from log import logger, log_stack
 
@@ -38,12 +43,14 @@ class Queue(SurgeQueue):
         """
         if block not in self._requested:
             return None
+
         self._requested.remove(block)
         piece = block.piece
         progress = self._progress[piece]
         progress.add(block, data)
         if not progress.done:
             return None
+
         data = self._progress.pop(piece).data
         if valid_piece_data(piece, data):
             return piece, data
@@ -66,16 +73,17 @@ class Peer(SurgePeer):
 class Torrent(
     SurgeTorrent,
 ):
-    # def __init__(self, pieces, missing_pieces, results):
-    #     self._missing_pieces = list(missing_pieces)
-    #     self._peer_to_pieces = {}
-    #     self._piece_to_peers = collections.defaultdict(set)
-    #     self._pieces = pieces
-    #     self._results = results
-    #     # This check is necessary because `put_piece` is never called if there
-    #     # are no pieces to download.
-    #     if not self._missing_pieces:
-    #         self._results.close_nowait()
+    def __init__(self, pieces, missing_pieces, results):
+        # self._missing_pieces = set(missing_pieces)
+        self._missing_pieces = missing_pieces
+        self._peer_to_pieces = {}
+        self._piece_to_peers = collections.defaultdict(set)
+        self._pieces = pieces
+        self._results = results
+        # This check is necessary because `put_piece` is never called if there
+        # are no pieces to download.
+        if not self._missing_pieces:
+            self._results.close_nowait()
 
     @property
     def connected_peers(self):
@@ -111,6 +119,18 @@ class Torrent(
             if peer:
                 self._peer_to_pieces[peer].remove(piece)
                 self._piece_to_peers[piece].remove(peer)
+            else:
+                for peer in self._peer_to_pieces.keys():
+                    try:
+                        self._peer_to_pieces[peer].remove(piece)
+                    except (KeyError, IndexError) as exc:
+                        pass
+
+                    try:
+                        self._piece_to_peers[piece].remove(peer)
+                    except (KeyError, IndexError) as exc:
+                        pass
+
         except Exception as exc:
             logger.info(f'{exc=}'[:512])
 
@@ -134,15 +154,57 @@ class Torrent(
         except Exception as exc:
             logger.info(f'{exc=}'[:512])
 
+    def get_piece(self, peer, available):
+        """Return a piece to download next.
+
+        Raise `IndexError` if there are no additional pieces to download.
+        """
+        # logger.info(f'{peer=}')
+        pool = self._missing_pieces & (available - self._peer_to_pieces[peer])
+        # logger.info(f'{pool=}')
+        piece = random.choice(tuple(pool - set(self._piece_to_peers) or pool))
+        # logger.info(f'{piece=}')
+        self._peer_to_pieces[peer].add(piece)
+        # logger.info(f'2')
+        self._piece_to_peers[piece].add(peer)
+        # logger.info(f'3')
+        return piece
+
+
+class Stream(DefaultStream):
+
+    # TODO: check if chunk have zero size
+    # what coming in prefix
+    async def read(self):
+        prefix = await self._reader.readexactly(4)
+        data = await self._reader.readexactly(int.from_bytes(prefix, "big"))
+        return messages.parse(prefix + data)
+
+
+@contextlib.asynccontextmanager
+async def open_stream(peer):
+    reader, writer = await asyncio.open_connection(peer.address, peer.port)
+    try:
+        yield Stream(reader, writer)
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
 
 async def download_from_peer(
         torrent, peer, info_hash, peer_id, pieces, max_requests,
-        redis
+        redis, read_delay=0
 ):
+
+    # only for redis memory monitoring
+    try:
+        piece_length = pieces[0].length
+    except (KeyError, AttributeError) as exc:
+        # logger.info(f'piece_length {exc=}\n\n\n\n\n')
+        piece_length = 20971520
 
     hex_info_hash = from_bytes_to_hex(info_hash)
     # max_requests = 500
-    max_memory = int(redis.config_get('maxmemory')['maxmemory'])
     async with open_stream(peer) as stream:
         await stream.write(messages.Handshake(0, info_hash, peer_id))
         received = await stream.read_handshake()
@@ -155,35 +217,43 @@ async def download_from_peer(
         # by the specification, but makes requesting pieces much easier.
         while True:
 
+            await redis_memory_wait(
+                r=redis,
+                more_total=piece_length*50,
+                info=hex_info_hash,
+            )
+
+            await asyncio.sleep(read_delay)
             received = await stream.read()
             if isinstance(received, messages.Have):
+                # logger.info(f'{received.index=}, {pieces=}')
                 available.add(pieces[received.index])
+                logger.info(f'1.{len(available)=}, {hex_info_hash=}')
+
+            elif isinstance(received, messages.Bitfield):
+                for i in received.to_indices():
+                    # logger.info(f'{i=}, {pieces=}')
+                    available.add(pieces[i])
+                logger.info(f'2.{len(available)=}, {hex_info_hash=}')
+
+            else:
+                logger.info(f'3.sleep.{received=}, {len(available)=}, {hex_info_hash=}')
+                await asyncio.sleep(30)
+                continue
+
+            if available:
+                await asyncio.sleep(1)
                 break
 
-            if isinstance(received, messages.Bitfield):
-                for i in received.to_indices():
-                    available.add(pieces[i])
-                break
+            if not available:
+                logger.info(f'{received=}, {hex_info_hash=}')
+                await asyncio.sleep(1)
+                raise NotHaveTorrent
 
         state = State.CHOKED
         queue = Queue()
+        passive_try = 0
         while True:
-
-            # await asyncio.sleep(0.1)
-
-            try:
-                piece_length = pieces[0].length
-            except Exception as exc:
-                # logger.info(f'piece_length {exc=}\n\n\n\n\n')
-                piece_length = 20971520
-
-            total = int(redis.memory_stats()['total.allocated'])
-            # logger.info(f'{total=}, {max_memory=}')
-
-            while total + piece_length * 50 > max_memory:
-                logger.info(f'wait for free memory, {hex_info_hash=}')
-                await asyncio.sleep(150+30+random.randint(10, 20))
-                total = int(redis.memory_stats()['total.allocated'])
 
             if state is State.CHOKED:
                 await stream.write(messages.Interested())
@@ -195,16 +265,32 @@ async def download_from_peer(
                     try:
                         piece = torrent.get_piece(peer, available)
                     except IndexError as exc:
+                        logger.info(f'{passive_try=}, {peer=},'
+                                    f' {torrent._peer_to_pieces=}, {torrent._piece_to_peers=}'
+                                    f' {exc=} to passive, sleep, {hex_info_hash=}')
+                        passive_try += 1
+                        if passive_try >= 10:
+                            logger.info(f'raise, {passive_try=}, {hex_info_hash=}')
+                            raise Exception(f'passive exc, {hex_info_hash=}')
                         # log_stack.error('ch')
-                        logger.info(f'{exc=} to passive, sleep')
                         state = State.PASSIVE
-                        await asyncio.sleep(600)
+                        await asyncio.sleep(240)
                     else:
+                        # logger.info(f'add queue, {piece=}, {hex_info_hash=}')
                         queue.add_piece(piece)
                 else:
                     await stream.write(messages.Request.from_block(block))
             else:
+
+                await redis_memory_wait(
+                    r=redis,
+                    more_total=piece_length*50,
+                    info=hex_info_hash,
+                )
+
+                await asyncio.sleep(read_delay)
                 received = await stream.read()
+
                 # logger.info(f'{type(received)=}')
                 if isinstance(received, messages.Choke):
                     queue.reset_progress()
@@ -240,7 +326,8 @@ async def download_from_peer_loop(
         force_reconnect=False,
         # missing_pieces=None,
 ):
-
+    read_delay = 0
+    hex_info_hash = from_bytes_to_hex(info_hash)
     while True:
 
         # if not missing_pieces:
@@ -251,14 +338,15 @@ async def download_from_peer_loop(
             peer = await trackers.get_peer()
 
         # logger.info(f'{peer=}')
-        try:
-            torrent.peer_connected(peer)
 
+        torrent.peer_connected(peer)
+
+        try:
             await download_from_peer(
                 torrent, peer, info_hash, peer_id, pieces, max_requests,
-                redis
+                redis, read_delay=read_delay
             )
-        except ConnectionRefusedError:
+        except ConnectionRefusedError as exc:
             if not force_reconnect:
                 try:
                     trackers._seen_peers.remove(peer)
@@ -269,14 +357,26 @@ async def download_from_peer_loop(
                     torrent.peer_disconnected(peer)
                 except Exception:
                     pass
-            pass
-        except OSError:
-            pass
+
+            logger.info(f'sleep1: {hex_info_hash=}, {exc=}')
+            await asyncio.sleep(60+random.randint(150, 300))
+        except OSError as exc:
+            read_delay += 0.1
+            log_stack.error(f'sleep2 {hex_info_hash=}')
+            logger.info(f'sleep2: {hex_info_hash=}, {exc=}')
+            # await asyncio.sleep(60+random.randint(150, 300))
+        except NotHaveTorrent:
+            logger.info(f'{peer=} not have {hex_info_hash=}')
+            await asyncio.sleep(600)
+        except asyncio.IncompleteReadError as exc:
+            await asyncio.sleep(300+random.randint(150, 300))
         except Exception as exc:
+            pass
             # TODO: DEBUG
             # log_stack.error('check')
-            # logger.info(f'{exc=}')
-            pass
+            # logger.info(f'sl')
+            logger.info(f'sleep3: {hex_info_hash=} {exc=}')
+            await asyncio.sleep(60+random.randint(150, 300))
         finally:
             try:
                 trackers._seen_peers.remove(peer)

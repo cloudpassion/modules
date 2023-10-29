@@ -102,6 +102,8 @@ class TorrentProgressDispatcher(
                 try:
                     if not status.missing:
                         pass
+                    if not status.total:
+                        pass
                         # continue
                 except AttributeError:
                     continue

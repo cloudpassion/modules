@@ -22,12 +22,12 @@ class NewBotDispatcher(
     wait_upload = 0
     upload_bot: Bot
     upload_bots: List[Bot]
-    upload_sem = asyncio.Semaphore(8)
+    upload_sem = asyncio.Semaphore(4)
     upload_close = AsyncLimiter(1, time_period=10)
     upload_close_wait = False
 
     upload_at_minute = AsyncLimiter(60)
-    upload_at_second = AsyncLimiter(2, time_period=1)
+    upload_at_second = AsyncLimiter(1, time_period=1)
 
     def _new_bot(self):
         # bot = Bot(self.bot.token, parse_mode="HTML")
@@ -36,6 +36,7 @@ class NewBotDispatcher(
             # parse_mode="HTML",
             # session=create_http_session()
         )
+        setattr(bot, 'dp', self)
         # self.upload_bot = bot
         return bot
 

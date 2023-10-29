@@ -175,6 +175,7 @@ async def request_peers_http(root, url, parameters):
         for peer in result.peers:
             # logger.info(f'{peer=}')
             await root.put_peer(peer)
+
         await asyncio.sleep(120)
         #result.interval)
 
@@ -257,3 +258,10 @@ class Trackers(
                 request_peers(self, url, self._parameters)
             )
         return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        tasks = self._trackers.values()
+        for task in tasks:
+            task.cancel()
+
+        # await asyncio.gather(*tasks, return_exceptions=True)

@@ -5,11 +5,13 @@ from ..aiohttp.session import AiohttpSession
 from .me_orm import OrmMeBot
 from .resession import ReBaseSession
 from .requests import RequestsHandlerBot
+from .wait import WaitLimitBot
 
 
 class Bot(
     OrmMeBot,
-    RequestsHandlerBot
+    RequestsHandlerBot,
+    WaitLimitBot,
 ):
 
     def __init__(
