@@ -177,7 +177,12 @@ class MyEventMessageDatabase(
             message.chat.id,
             id=message.id
         )
-        logger.info(f'{message.id=}, {db_check=}')
+        try:
+            _ex = message.chat.id
+        except Exception as exc:
+            _ex = message.chat
+
+        logger.info(f'{_ex=}, {message.id=}, {db_check=}')
 
         if check:
             return db_check

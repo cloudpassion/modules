@@ -159,8 +159,11 @@ class MyChatDatabase(
                 except FloodWait as exc:
                     await self.parse_flood('database_chat_get_full', exc, wait=False)
                     return
-                except Exception:
-                    log_stack.error(f'get full exception')
+                except Exception as exc:
+                    try:
+                        log_stack.error(f'get full exception, {chat.id=}, {chat=}')
+                    except AttributeError:
+                        logger.info(f'{chat=}, {exc=}')
 
                 if not wait:
                     break

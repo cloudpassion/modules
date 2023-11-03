@@ -21,7 +21,9 @@ class MyPyrogramMonitor(
     PyrogramClient,
 ):
 
-    async def events(self):
+    async def events(self, lazy=False):
+
+        logger.info(f'{lazy=}')
 
         @self.on_message()
         async def new_message_event(client, event):
@@ -33,6 +35,10 @@ class MyPyrogramMonitor(
 
             if settings.log.help:
                 self.log_event(event, force=True)
+
+            if lazy:
+                logger.info(f'return {lazy=}')
+                return
 
             # event to database
             if settings.database.new_message:
@@ -98,6 +104,11 @@ class MyPyrogramMonitor(
 
         @self.on_edited_message()
         async def edit_message_event(client, event):
+
+            if lazy:
+                logger.info(f'return {lazy=}')
+                return
+
             if settings.database.edited_message:
                 message = await self.database_message(event, delete=False)
                 discuss_message = message.discuss_message
@@ -135,6 +146,11 @@ class MyPyrogramMonitor(
 
         @self.on_deleted_messages()
         async def delete_message_event(client, events):
+
+            if lazy:
+                logger.info(f'return {lazy=}')
+                return
+
             if settings.database.deleted_message:
                 await self.database_message(events, delete=True)
 
@@ -180,6 +196,11 @@ class MyPyrogramMonitor(
 
         @self.on_poll()
         async def poll_update(client, raw_data):
+
+            if lazy:
+                logger.info(f'return {lazy=}')
+                return
+
             if settings.database.poll:
                 logger.info(f'poll {raw_data=}')
                 try:
@@ -191,6 +212,14 @@ class MyPyrogramMonitor(
 
         @self.on_raw_update()
         async def raw_update(client, raw_data, raw_extra, raw_new):
+
+            if settings.log.help:
+                logger.info(f'{raw_data=}\n{raw_extra=}\n{raw_new=}')
+
+            if lazy:
+                logger.info(f'return {lazy=}')
+                return
+
             if settings.database.raw:
                 # logger.info(f'{raw_data=}\n{raw_extra=}\n{raw_new=}')
                 if isinstance(raw_data, pyrogram.raw.types.UpdateMessageReactions):

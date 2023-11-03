@@ -222,6 +222,8 @@ class MyTelethonChannelDiscussionForward(
             db_data = []
             for event in events:
 
+                tr = 0
+                sl_t = 0.1
                 while True:
                     db_message = self.db.select(
                         'message', event.chat.id,
@@ -231,7 +233,10 @@ class MyTelethonChannelDiscussionForward(
                         break
 
                     logger.info(f'wait db')
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(sl_t)
+                    tr += 1
+                    if tr % 1000 == 0:
+                        sl_t += 1
 
                 # if not db_msg:
                 search = {
