@@ -31,6 +31,9 @@ class MyPyrogramMonitor(
             if settings.log.save_session:
                 self.save_event(event)
 
+            if settings.log.help:
+                self.log_event(event, force=True)
+
             # event to database
             if settings.database.new_message:
                 async def wait_db():
@@ -137,7 +140,12 @@ class MyPyrogramMonitor(
 
             if settings.discussion.forward.enable:
                 # logger.info(f'{event=}')
-                chat_id = events[0].chat.id
+                try:
+                    chat_id = events[0].chat.id
+                except:
+                    log_stack.error(f'{events=}')
+                    raise
+
                 if chat_id in self.discussion_fwd_data:
                     if self.discussion_fwd_data[chat_id].get('delete'):
                         await self.discuss_forward_delete(
