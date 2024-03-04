@@ -17,6 +17,7 @@ from pyrogram.types import Message as PyrogramMessage, InputMediaPhoto
 from pyrogram.errors.exceptions.flood_420 import FloodWait
 from pyrogram.errors.exceptions.bad_request_400 import FileReferenceExpired
 from pyrogram.errors.exceptions.bad_request_400 import MessageNotModified
+from pyrogram.errors.exceptions.bad_request_400 import PeerIdInvalid
 
 from ..client import MyAbstractTelegramClient
 
@@ -430,6 +431,9 @@ class MyTelethonChannelDiscussionForward(
                                         if not wait:
                                             break
                                     except MessageNotModified:
+                                        edited = True
+                                        break
+                                    except PeerIdInvalid:
                                         edited = True
                                         break
                                     except pyrogram.errors.exceptions.forbidden_403.MessageAuthorRequired:
