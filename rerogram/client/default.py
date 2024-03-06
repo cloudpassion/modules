@@ -548,7 +548,8 @@ class MyAbstractTelegramClient(
                                         message=messages[0]
                                     )
                                     logger.info(f'{db_try=}')
-                                except:
+                                except Exception as exc:
+                                    log_stack.error('t')
                                     break
                             else:
                                 break
