@@ -467,6 +467,7 @@ class MyAbstractTelegramClient(
                                 event.chat.id,
                                 msg_id,
                             )
+                            logger.info(f'{_media_group=}')
                     else:
                         _media_group = await self.get_media_group_db(
                             event.chat.id,
@@ -501,6 +502,7 @@ class MyAbstractTelegramClient(
                     for db_message in db_group:
                         if not sender_chat:
                             sender_chat = db_message.sender_chat
+                            print(f's.2 {sender_chat=}')
 
                         db_channel_message = self.db.select(
                             '_message',
@@ -541,6 +543,7 @@ class MyAbstractTelegramClient(
                                         db_group[0].forward_from_chat.id,
                                         message_ids=[db_group[0].forward_from_message_id, ]
                                     )
+                                    logger.info(f'{messages=}')
                                     db_try = await self.database_message(
                                         message=messages[0]
                                     )
