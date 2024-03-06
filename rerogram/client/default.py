@@ -521,7 +521,8 @@ class MyAbstractTelegramClient(
                     if count >= 100:
                         logger.info(f'{[x.id for x in db_group if x]=}, '
                                     f'{event.media_group_id=}, {db_group=}')
-                        count = 0
+
+                        # count = 0
                         try:
                             reply = None
                             while True:
@@ -569,6 +570,10 @@ class MyAbstractTelegramClient(
                         break
 
                     await asyncio.sleep(0.1)
+
+                    if count > 200:
+                        logger.info(f'break.200')
+                        break
 
                 # logger.info(f'{db_channel_message=}')
 
