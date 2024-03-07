@@ -483,6 +483,10 @@ class MyAbstractTelegramClient(
                 count = 0
                 while True:
 
+                    if count > 110:
+                        logger.info(f'break.200')
+                        break
+
                     db_group = []
                     if _media_group:
                         db_group.extend(_media_group)
@@ -519,7 +523,7 @@ class MyAbstractTelegramClient(
 
                     #
                     if count >= 100:
-                        logger.info(f'{[x.id for x in db_group if x]=}, '
+                        logger.info(f'{count=}, {[x.id for x in db_group if x]=}, '
                                     f'{event.media_group_id=}, {db_group=}')
 
                         # count = 0
@@ -567,15 +571,12 @@ class MyAbstractTelegramClient(
                     #         break
 
                     if db_channel_message:
+                        logger.info(f'br1')
                         break
 
                     await asyncio.sleep(0.1)
 
-                    if count > 200:
-                        logger.info(f'break.200')
-                        break
-
-                # logger.info(f'{db_channel_message=}')
+                logger.info(f'{db_channel_message=}')
 
             if db_channel_message:
                 if sender_chat:
