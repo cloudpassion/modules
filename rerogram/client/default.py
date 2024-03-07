@@ -521,7 +521,10 @@ class MyAbstractTelegramClient(
                         logger.info(f'no_sender_chat')
                         break
 
-                    #
+                    if count >= 5:
+                        logger.info(f'break.5')
+                        break
+
                     if count >= 100:
                         logger.info(f'{count=}, {[x.id for x in db_group if x]=}, '
                                     f'{event.media_group_id=}, {db_group=}')
