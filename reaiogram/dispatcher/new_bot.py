@@ -13,6 +13,13 @@ from ..default.bot import Bot
 from .default import ExtraDispatcher
 from ..loader.setup import API_TOKEN
 from ..utils.scripts.http_session import create_http_session
+from ..utils.enums import MAX_FILE_SIZE
+
+
+if MAX_FILE_SIZE == 20971520:
+    MAX_UPLOAD_SEM = 8
+elif MAX_FILE_SIZE == 52428800:
+    MAX_UPLOAD_SEM = 4
 
 
 class NewBotDispatcher(
@@ -22,7 +29,7 @@ class NewBotDispatcher(
     wait_upload = 0
     upload_bot: Bot
     upload_bots: List[Bot]
-    upload_sem = asyncio.Semaphore(4)
+    upload_sem = asyncio.Semaphore(MAX_UPLOAD_SEM)
     upload_close = AsyncLimiter(1, time_period=10)
     upload_close_wait = False
 

@@ -22,6 +22,7 @@ from config import secrets, settings
 from log import logger, log_stack
 
 from bt.encoding.stuff import from_hex_to_bytes, from_bytes_to_hex
+from ....utils.enums import MAX_FILE_SIZE
 
 from reaiogram.types.torrent.default import DefaultTorrent, AbstractMergedTelegram
 
@@ -71,7 +72,10 @@ class TorrentDownloadVersion6(
                 continue
 
             if piece.message and not piece.begin and not piece.length:
+                # br = True
+                # ln += 1
                 logger.info(f'still bad begin and length: {self.info_hash=}')
+                # piece.delete()
                 continue
 
         # else:
@@ -201,16 +205,15 @@ class TorrentDownloadVersion6(
         # )
 
         logger.info(f'end1 {self.info_hash=}')
-        #
         # if tasks:
         logger.info(f'start tasks: {len(tasks)=}, {self.info_hash=}')
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for res in results:
+            logger.info(f'{res=}, {self.info_hash=}')
         # if upload_tasks:
-        if True:
-            logger.info(f'st.upload.tasks, {upload_task=}, {self.info_hash=}')
-            results = await asyncio.gather(*tasks)
-            for res in results:
-                logger.info(f'{res=}, {self.info_hash=}')
-                await asyncio.gather(*res)
+        # if True:
+        #     logger.info(f'st.upload.tasks, {upload_task=}, {self.info_hash=}')
+        #     #     await asyncio.gather(*res)
 
         # await mon_upload
         # await upload_task
@@ -287,6 +290,13 @@ class TorrentDownloadVersion6(
             redis_hashes,
             set_status=False,
     ):
+
+        if MAX_FILE_SIZE < 30000:
+            split_tasks = 8
+        elif MAX_FILE_SIZE > 50000:
+            split_tasks = 4
+        else:
+            split_tasks = 4
 
         # missing_pieces = set(missing_pieces)
 
@@ -432,11 +442,7 @@ class TorrentDownloadVersion6(
 
                 pieces_to_upload.append(torrent_piece)
 
-                # 20MB
-                max_file_size = 20971520
-                # 50MB, TODO: very slow telethon download, event with cryptg
-                # max_file_size = 52428800
-                if size + length + len(f'{text}\n') + 128 >= max_file_size:
+                if size + length + len(f'{text}\n') + 256 >= MAX_FILE_SIZE:
                     break
 
                 if not missing_pieces and not self.data and not redis_hashes:
@@ -469,7 +475,8 @@ class TorrentDownloadVersion6(
             # logger.info(f'st.upload.task')
             # await task
             # if False:
-            if len(tasks) % 10 == 0: # or len(missing_pieces) <= 50:
+            if len(tasks) % split_tasks == 0: # or len(missing_pieces) <= 50:
+
                 # if tasks:
                 logger.info(f'10.0.start tasks: {len(tasks)}, {self.info_hash=}')
                 await asyncio.gather(*tasks, return_exceptions=True)
@@ -499,12 +506,17 @@ class TorrentDownloadVersion6(
             # except:
             #     log_stack.error(f'ch')
 
-        logger.info(f'return {len(tasks)=}, {self.info_hash=}')
-        return tasks
         # if tasks:
-        logger.info(f'1start tasks: {self.info_hash=}')
-        await asyncio.gather(*tasks, return_exceptions=True)
-        logger.info(f'1tasks complete: {self.info_hash=}')
+        if tasks:
+            logger.info(f'1start tasks: {self.info_hash=}')
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for res in results:
+                logger.info(f'2.{res=}, {self.info_hash=}')
+
+            logger.info(f'1tasks complete: {self.info_hash=}')
+
+        # logger.info(f'return {len(tasks)=}, {self.info_hash=}')
+        # return tasks
 
         # if set_status:
         #     logger.info(f'set_status: {self.info_hash=}')

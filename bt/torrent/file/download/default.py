@@ -45,7 +45,16 @@ async def chunk_task(
         # chunk: Chunk
         try:
             # ch = chunk.read(folder)
-            ch = await chunk.aio_read(folder)
+            # p_file = f'pieces/{from_bytes_to_hex(piece.hash)}'
+            # if os.path.exists(p_file):
+            #     with open(p_file, 'rb') as rf:
+            #         ch = rf.read()
+            #
+            # else:
+            try:
+                ch = await chunk.aio_read(folder)
+            except OSError:
+                ch = await chunk.aio_read_fail()
 
             # ch = await loop.run_in_executor(
             #     None, functools.partial(
@@ -288,7 +297,7 @@ class TorrentDefaultDownload(
                     # time_period=3600.0+float(
                     #     random.randint(1200, 2400)
                     # )
-                    time_period=900.0+float(
+                    time_period=300.0+float(
                         random.randint(300, 600)
                     )
                 )
@@ -310,6 +319,7 @@ class TorrentDefaultDownload(
                         continue
 
                     path = f'{folder}/{self.name}'
+                    logger.info(f'{path=}')
                     realpath = os.path.realpath(path)
                     if not os.path.isfile(realpath) and not os.path.isdir(realpath):
                         # logger.info(f'torrent dont exist in {path=}')

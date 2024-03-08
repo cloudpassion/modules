@@ -1,3 +1,4 @@
+import base64
 import os
 import aiofiles
 import contextlib
@@ -266,7 +267,6 @@ async def download_from_peer(
                         piece = torrent.get_piece(peer, available)
                     except IndexError as exc:
                         logger.info(f'{passive_try=}, {peer=},'
-                                    f' {torrent._peer_to_pieces=}, {torrent._piece_to_peers=}'
                                     f' {exc=} to passive, sleep, {hex_info_hash=}')
                         passive_try += 1
                         if passive_try >= 10:
@@ -362,7 +362,7 @@ async def download_from_peer_loop(
             await asyncio.sleep(60+random.randint(150, 300))
         except OSError as exc:
             read_delay += 0.1
-            log_stack.error(f'sleep2 {hex_info_hash=}')
+            # log_stack.error(f'sleep2 {hex_info_hash=}')
             logger.info(f'sleep2: {hex_info_hash=}, {exc=}')
             # await asyncio.sleep(60+random.randint(150, 300))
         except NotHaveTorrent:
@@ -404,6 +404,17 @@ class Chunk:
     piece: Piece
     begin: int  # Absolute offset.
     length: int
+
+    async def aio_read_fail(self):
+        small_name = ''.join(
+            base64.b64encode(self.file.path.name.encode('utf8')).decode('utf8')[0:12]
+        )
+        small_path = f'for_small/{small_name}'
+        logger.info(f'{self.file.path} -> {small_path}')
+        if os.path.isfile(small_path) or os.path.islink(small_path):
+            async with aiofiles.open(small_path, mode='rb') as f:
+                await f.seek(self.begin - self.file.begin)
+                return await f.read(self.length)
 
     async def aio_read(self, folder):
         async with aiofiles.open(folder / self.file.path, mode='rb') as f:

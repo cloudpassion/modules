@@ -71,6 +71,7 @@ class TorrentGrabVersion5(
 
         redis_hashes = []
         missing_pieces = set(self.metadata.pieces)
+        logger.info(f'max {len(missing_pieces)=}')
 
         for torrent_piece in self.pieces:
 

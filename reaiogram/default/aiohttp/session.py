@@ -23,7 +23,7 @@ class AiohttpSession(DefaultAiohttpSession):
         self._connector_init: Dict[str, Any] = {
             **self._connector_init,
             'limit': 25,
-            'enable_cleanup_closed': True,
+            # 'enable_cleanup_closed': True,
             'force_close': True,
         }
 

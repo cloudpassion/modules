@@ -10,6 +10,7 @@ import inspect
 import logging
 import pyrogram
 
+from typing import Union
 from operator import itemgetter
 from typing import BinaryIO
 from pathlib import Path
@@ -41,6 +42,7 @@ from telethon import TelegramClient, events
 from telethon.utils import resolve_bot_file_id
 # from telethon.tl.custom.file import F
 
+from pyrogram.file_id import FileId as PyrogramFileId
 from tg_file_id.file_id import FileId
 from tg_file_id.file_unique_id import FileUniqueId
 
@@ -51,9 +53,63 @@ TG_API_HASH = secrets.bt.download.api_hash
 # logging.basicConfig(level=logging.DEBUG)
 # For instance, show only warnings and above
 logging.getLogger('telethon').setLevel(level=logging.WARNING)
+logging.getLogger('pyrogram').setLevel(level=logging.WARNING)
 
 
-async def download_file(
+async def yield_pyrogram_chunks(
+        client: pyrogram.Client,
+        file_id_obj,
+        file_size
+):
+    async for chunk in client.get_file(file_id_obj, file_size, 0, 0):
+        yield chunk
+
+
+async def download_file_pyrogram(
+        client: pyrogram.Client,
+        message,
+        out: BytesIO,
+):
+    # chunks = {}
+    # num = -1
+
+    # client.stream_media()
+    logger.info(f'yield start')
+    media = message.document
+
+    file_id = PyrogramFileId.decode(media.file_id)
+    file_size = getattr(media, "file_size", 0)
+    async for chunk in client.get_file(file_id, file_size, 0, 0):
+        out.write(chunk)
+
+    return out
+    logger.info(f'yield end')
+
+    sem = asyncio.Semaphore(5)
+
+    async def read_chunk(_num, _chunk):
+        async with sem:
+            logger.info(f'{chunk=}, {len(_chunk)=}')
+        return _num, _chunk
+
+    tasks = []
+    for n, chunk in chunks.items():
+        task = asyncio.create_task(read_chunk(n, chunk))
+        tasks.append(task)
+
+    logger.info(f'gather start')
+    await asyncio.gather(*tasks)
+    logger.info(f'gather end')
+
+    logger.info(f'write start')
+    for n in range(0, len(chunks.keys())):
+        out.write(chunks[num])
+
+    logger.info(f'write end')
+    return out
+
+
+async def download_file_telethon(
     client: TelegramClient,
     location: TypeLocation,
     out: BinaryIO,
@@ -78,31 +134,61 @@ async def download_file(
 
 
 async def new_client(
-        client: TelegramClient
+        tp,
+        client: Union[TelegramClient, pyrogram.Client],
 ):
 
-    if client:
-        try:
+    logger.info(f'{tp=}, {client=}')
+    if tp == 'telethon':
+        client: TelegramClient
+        if client:
+            try:
+                await client.disconnect()
+            except:
+                pass
+
+            # try:
+            #     await client.close()
+            # except:
+            #     pass
+
+        client = TelegramClient(
+            '.tg_download_session', TG_API_ID, TG_API_HASH,
+            auto_reconnect=False,
+            proxy=('socks5', secrets.temp.proxy.adr, secrets.temp.proxy.port),
+        )
+        await client.connect()
+        # await client.start()
+
+    elif tp == 'pyrogram':
+        client: pyrogram.Client
+        if client:
+            logger.info(f'disconnect, {client=}')
             await client.disconnect()
-        except:
-            pass
 
-        # try:
-        #     await client.close()
-        # except:
-        #     pass
+        client = pyrogram.Client(
+            f'.tg_download_pyrogram',
+            api_id=secrets.bt.download.api_id,
+            api_hash=secrets.bt.download.api_hash,
+            workers=8,
+            max_concurrent_transmissions=8,
+            proxy={
+                "scheme": "socks5",
+                "hostname": secrets.temp.proxy.adr,
+                "port": secrets.temp.proxy.port,
+            }
 
-    client = TelegramClient(
-        '.tg_download_session', TG_API_ID, TG_API_HASH,
-        auto_reconnect=False
-    )
-    await client.connect()
-    # await client.start()
+        )
+
+        await client.connect()
+        # await client.get_me()
 
     return client
 
 
-# asyncio.run(new_client(None))
+# client = asyncio.run(new_client('pyrogram', None, True))
+# client.run()
+# asyncio.run(new_client('telethon', None))
 
 
 class TorrentGrabVersion6(
@@ -449,7 +535,7 @@ class TorrentGrabVersion6(
     ):
 
         # tg_client = None
-        tg_client = await new_client(None)
+        tg_client = await new_client('pyrogram', None)
 
         async def download_task(
                 size,
@@ -458,13 +544,14 @@ class TorrentGrabVersion6(
                 document,
                 client,
                 limiter,
+                i_hash,
         ):
 
             if file_bytes.get(txt_file):
                 return
 
-            if False:
-            # if size <= 20971520:
+            # if False:
+            if size <= 20971520:
                 # logger.info(f'download')
                 while True:
                     try:
@@ -490,6 +577,7 @@ class TorrentGrabVersion6(
                 #     f.write(file_bytes[txt_file].read())
                 #
                 # file_bytes[txt_file].seek(0)
+
             else:
                 # logger.info(f'rewrite')
                 # return
@@ -499,7 +587,8 @@ class TorrentGrabVersion6(
                     while True:
                         try:
                             await self.bot.send_document(
-                                TG_CHAT_ID, file_id, caption=info_hash
+                                TG_CHAT_ID, file_id,
+                                caption=i_hash
                             )
                             break
                         except (
@@ -511,8 +600,9 @@ class TorrentGrabVersion6(
 
                 async with limiter['client']:
 
+                    tp = 'pyrogram'
                     if not client:
-                        client = await new_client(None)
+                        client = await new_client(tp, None)
 
                     # asyncio.create_task(
                     await sleep_send(document.file_id)
@@ -525,11 +615,38 @@ class TorrentGrabVersion6(
                     messages = None
                     while not messages:
                         try:
-                            messages = await client.get_messages((await self.bot.me()).id)
+                            if tp == 'telethon':
+                                messages = await client.get_messages((await self.bot.me()).id)
+                            elif tp == 'pyrogram':
+                                client: pyrogram.Client
+                                messages = []
+                                async for message in client.get_chat_history(
+                                    chat_id=(await self.bot.me()).username,
+                                    limit=20
+                                ):
+                                    if not message:
+                                        continue
+
+                                    if message.document:
+                                        if i_hash in message.document.file_name:
+                                            messages.append(message)
+                                            continue
+
+                                    if message.caption:
+                                        if i_hash in message.caption:
+                                            messages.append(message)
+                                            continue
+
+                                    if message.text:
+                                        if i_hash in message.text:
+                                            messages.append(message)
+                                            continue
+
                             break
                         except Exception as exc:
                             logger.info(f'{exc=}'[:512])
-                            client = await new_client(client)
+                            await asyncio.sleep(5+random.randint(5, 10))
+                            client = await new_client(tp, client)
                             continue
 
                     while True:
@@ -558,24 +675,31 @@ class TorrentGrabVersion6(
                         if not msg:
                             return
 
-                        del_ids.append(msg.id)
-                        if not msg.message:
-                            continue
+                        # del_ids.append(msg.id)
+                        # if tp == 'telethon':
+                        #     if not msg.message:
+                        #         continue
+                        #     text = msg.message
+                        # elif tp == 'pyrogram':
+                        #     if not msg.caption:
+                        #         continue
+                        #     text = msg.caption
 
-                        if info_hash not in msg.message:
-                            del_ids.append(msg.id)
-                            continue
+                        # if info_hash not in text:
+                        #     del_ids.append(msg.id)
+                        #     continue
 
                         # file_data = ()
                         while True:
                             try:
                                 file_data = BytesIO()
                                 #BinaryIO()
-                                blob = await download_file(
-                                    client, msg.document,
-                                    file_data,
-                                )
-                                file_data = blob
+                                if tp == 'telethon':
+                                    blob = await download_file_telethon(
+                                        client, msg.document,
+                                        file_data,
+                                    )
+                                    file_data = blob
 
                                 # blob = await client.download_media(
                                 #     msg, file=bytes
@@ -586,10 +710,20 @@ class TorrentGrabVersion6(
 
                                 # logger.info(f'{len(file_data)=}')
                                 # logger.info(f'{len(blob)=}')
+                                elif tp == 'pyrogram':
+                                    blob = await download_file_pyrogram(
+                                        client, msg, file_data
+                                    )
+                                    # blob = await client.download_media(
+                                    #     message=msg,
+                                    #     in_memory=True
+                                    # )
+                                    file_data = blob
+
                                 break
                             except Exception as exc:
 
-                                client = await new_client(client)
+                                client = await new_client(tp, client)
                                 logger.info(f'{exc=}'[:512])
                                 await asyncio.sleep(20)
                                 continue
@@ -605,7 +739,10 @@ class TorrentGrabVersion6(
                         return
 
                     try:
-                        await client.delete_messages(TG_CHAT_ID, del_ids)
+                        if tp == 'telethon':
+                            await client.delete_messages(TG_CHAT_ID, del_ids)
+                        elif tp == 'pyrogram':
+                            await client.delete_messages(TG_CHAT_ID, del_ids)
                     except Exception as exc:
                         logger.info(f'{exc=}')
                         # client = new_client(client)
@@ -657,7 +794,10 @@ class TorrentGrabVersion6(
             size = document.file_size
 
             task = asyncio.ensure_future(
-                download_task(size, file_bytes, txt_file, document, tg_client, limiter)
+                download_task(
+                    size, file_bytes, txt_file, document, tg_client, limiter,
+                    dj_piece.info_hash
+                )
             )
             tasks.append(task)
 
