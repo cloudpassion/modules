@@ -623,17 +623,18 @@ class TorrentDownloadVersion6(
 
                 try:
                     # async with UPLOAD_SEM and UPLOAD_AT_MINUTE and UPLOAD_AT_SECOND:
-                    wu = self.dp.wait_upload
-                    while wu:
-                        await asyncio.sleep(wu)
-                        wu = self.dp.wait_upload
-                        # logger.info(f'{wu=}')
+                    # wu = self.dp.wait_upload
+                    # while wu:
+                    #     await asyncio.sleep(wu)
+                    #     wu = self.dp.wait_upload
+                    #     # logger.info(f'{wu=}')
 
                     message = None
                     # async with self.dp.upload_sem and self.dp.upload_at_minute:
                     # async with self.dp.upload_at_minute:
 
-                    async with self.dp.upload_at_second:
+                    # async with self.dp.upload_at_second:
+                    if True:
                         if True:
                     # if True:
                     # if True:
@@ -649,9 +650,9 @@ class TorrentDownloadVersion6(
 
                     kwargs_data.update(await self.orm.message_to_orm(
                         message,
-                        prefix=f'{input_file.prefix}'
+                        prefix=f'{input_file.prefix}',
                     ))
-                    await self.dp.put_upload_bot(upload_bot)
+                    # await self.dp.put_upload_bot(upload_bot)
                     break
                 except (
                         TelegramRetryAfter, TelegramBadRequest
@@ -659,9 +660,16 @@ class TorrentDownloadVersion6(
                     tm = upload_bot.get_retry_timeout(exc)
 
                     self.dp.wait_upload = tm
-                    logger.info(f'sleep {tm=}')
-                    await asyncio.sleep(tm+random.randint(2, 10))
-                    self.dp.wait_upload = 0
+                    # logger.info(f'sleep {tm=}')
+                    # await asyncio.sleep(tm+random.randint(2, 10))
+                    # self.dp.wait_upload = 0
+
+                    logger.info(f'sleep 15: {exc=}'[:512])
+                    # self.upload_bot = self.new_bot(close=True)
+                    await asyncio.sleep(15)
+                    upload_bot = await self.dp.get_upload_bot(
+                        bot=upload_bot, wait=tm,
+                    )
 
                 except TelegramNetworkError as exc:
                     # for exc_text in (

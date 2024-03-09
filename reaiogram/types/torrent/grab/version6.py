@@ -30,13 +30,16 @@ from log import logger, log_stack
 from bt.encoding.stuff import from_hex_to_bytes, from_bytes_to_hex
 
 from reaiogram.types.torrent.default import DefaultTorrent, AbstractMergedTelegram
+
 from bt.torrent import TorrentPiece
 
 from ....types.django import (
     TorrentPiece as DjangoTorrentPiece,
     TgDocument as DjangoTgDocument,
     TgMessage as DjangoTgMessage,
+    TgBot as DjangoTgBot,
 )
+from ....default.bot import Bot as TgBot
 
 from telethon import TelegramClient, events
 from telethon.utils import resolve_bot_file_id
@@ -54,6 +57,8 @@ TG_API_HASH = secrets.bt.download.api_hash
 # For instance, show only warnings and above
 logging.getLogger('telethon').setLevel(level=logging.WARNING)
 logging.getLogger('pyrogram').setLevel(level=logging.WARNING)
+
+MERGE_BOTS = dict()
 
 
 async def yield_pyrogram_chunks(
@@ -316,8 +321,11 @@ class TorrentGrabVersion6(
         # logger.info(f'{len(txt_messages)=}')
 
         async def get_txt_files(
-            _documents, count
+            _documents, count, bot=None
         ):
+            if not bot:
+                bot = self.bot
+
             files = []
             for document in _documents:
 
@@ -327,7 +335,7 @@ class TorrentGrabVersion6(
                 while True:
                     try:
                         # logger.info(f'download txt {file_id=}')
-                        txt_data = await self.bot.download(
+                        txt_data = await bot.download(
                             file=file_id,
                         )
                         break
@@ -531,7 +539,7 @@ class TorrentGrabVersion6(
             txt_bytes,
             dj_pieces,
             out_dir,
-            rebuild_tree=False
+            rebuild_tree=False,
     ):
 
         # tg_client = None
@@ -545,25 +553,41 @@ class TorrentGrabVersion6(
                 client,
                 limiter,
                 i_hash,
+                doc_message,
         ):
 
             if file_bytes.get(txt_file):
                 return
 
+            bot_id = doc_message.from_user.id
+            bot = MERGE_BOTS.get(bot_id)
+
+            if not bot:
+
+                bot = self.dp._new_bot(
+                    bot_name=DjangoTgBot.objects.filter(
+                        id=bot_id
+                    ).first().username,
+                    not_upload=True,
+                )
+                print(f'{bot=}, {bot.id}')
+                MERGE_BOTS[bot_id] = bot
+
             # if False:
             if size <= 20971520:
                 # logger.info(f'download')
                 while True:
+
                     try:
                         async with limiter['bot']:
-                            file_bytes[txt_file] = await self.bot.download(
+                            file_bytes[txt_file] = await bot.download(
                                 document.file_id
                             )
                             break
                     except (
                         TelegramRetryAfter, TelegramBadRequest
                     ) as exc:
-                        tm = self.bot.get_retry_timeout(exc)
+                        tm = bot.get_retry_timeout(exc)
 
                         self.dp.wait_upload = tm
                         logger.info(f'sleep {tm=}')
@@ -586,7 +610,7 @@ class TorrentGrabVersion6(
                     # await asyncio.sleep(2)
                     while True:
                         try:
-                            await self.bot.send_document(
+                            await bot.send_document(
                                 TG_CHAT_ID, file_id,
                                 caption=i_hash
                             )
@@ -595,7 +619,7 @@ class TorrentGrabVersion6(
                             TelegramRetryAfter, TelegramBadRequest
                         ) as exc:
                             logger.info(f'grab.wait.bot {tm=}')
-                            tm = self.bot.get_retry_timeout(exc)
+                            tm = bot.get_retry_timeout(exc)
                             await asyncio.sleep(tm+random.randint(2, 10))
 
                 async with limiter['client']:
@@ -616,12 +640,12 @@ class TorrentGrabVersion6(
                     while not messages:
                         try:
                             if tp == 'telethon':
-                                messages = await client.get_messages((await self.bot.me()).id)
+                                messages = await client.get_messages((await bot.me()).id)
                             elif tp == 'pyrogram':
                                 client: pyrogram.Client
                                 messages = []
                                 async for message in client.get_chat_history(
-                                    chat_id=(await self.bot.me()).username,
+                                    chat_id=(await bot.me()).username,
                                     limit=20
                                 ):
                                     if not message:
@@ -778,25 +802,29 @@ class TorrentGrabVersion6(
                         info_hash in x.info_hash
                 )][0]
 
-            tmp_path = f'.data_tmp/{info_hash}'
+            tmp_path = f'cache/{self.info_hash}/{dj_piece.message.id}'
             # if os.path.isfile(f'.data_tmp/{info_hash}'):
             #     continue
 
+
             document = dj_piece.message.document
-
-            # if os.path.isfile(tmp_path) and os.stat(tmp_path).st_size != 0:
-            #     with open(tmp_path, 'rb') as f:
-            #         file_data = BytesIO(f.read())
-            #
-            #     file_bytes[txt_file] = file_data
-            #     continue
-
             size = document.file_size
+            file_size = os.stat(tmp_path).st_size
+            if os.path.isfile(tmp_path):
+                if file_size != 0 and file_size == size:
+
+                    with open(tmp_path, 'rb') as f:
+                        file_data = BytesIO(f.read())
+
+                    file_data.seek(0)
+                    file_bytes[txt_file] = file_data
+                    logger.info(f'found in cache')
+                    continue
 
             task = asyncio.ensure_future(
                 download_task(
                     size, file_bytes, txt_file, document, tg_client, limiter,
-                    dj_piece.info_hash
+                    dj_piece.info_hash, dj_piece.message
                 )
             )
             tasks.append(task)
