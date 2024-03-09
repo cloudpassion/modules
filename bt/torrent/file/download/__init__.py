@@ -28,6 +28,11 @@ class TorrentDownload(
 
         try:
             if variant == 'surge':
+                return await self.second_surge_download(
+                    missing_pieces,
+                    to_bytes, to_file,
+                    progress_func=progress_func,
+                )
                 return await self._surge_download(
                     missing_pieces,
                     to_bytes, to_file,

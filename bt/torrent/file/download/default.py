@@ -280,6 +280,7 @@ class TorrentDefaultDownload(
             self, torrent, missing_pieces, info_hash, ident
     ):
 
+        logger.info(f'start.tree_check')
         # try:
         if True:
             try:
@@ -306,16 +307,20 @@ class TorrentDefaultDownload(
             # }
 
             loop = asyncio.get_running_loop()
+            logger.info(f'{len(missing_pieces)=}')
             while missing_pieces:
-
+                
+                logger.info(1)
                 await asyncio.sleep(0)
+                logger.info(2)
+
                 folder_tasks = []
                 for folder in folders:
 
                     await asyncio.sleep(0)
 
                     if not os.path.isdir(os.path.realpath(folder)):
-                        # logger.info(f'nas {folder=} dont exist')
+                        logger.info(f'nas {folder=} dont exist')
                         continue
 
                     path = f'{folder}/{self.name}'

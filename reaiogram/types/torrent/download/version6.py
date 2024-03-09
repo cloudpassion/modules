@@ -1,4 +1,6 @@
+import os
 import copy
+import pickle
 import ctypes
 import gc
 import re
@@ -9,6 +11,8 @@ import time
 
 import psutil
 # import tracemalloc
+
+from pathlib import Path
 
 from aiolimiter import AsyncLimiter
 from aiogram.exceptions import (
@@ -36,6 +40,23 @@ from ..default import (
 # UPLOAD_AT_MINUTE = AsyncLimiter(29)
 # UPLOAD_AT_SECOND = AsyncLimiter(1, time_period=1)
 
+
+class PickleTemp:
+
+    def __init__(self):
+        self._missing_pieces_list = []
+    
+    def add_pieces(self, missing_pieces):
+        for p in missing_pieces:
+            self._missing_pieces_list.append(p.hash)
+    
+    def get_pieces(self, torrent):
+        missing_pieces = set()
+        for p in torrent.metadata.pieces:
+            if p.hash in self._missing_pieces_list:
+                missing_pieces.add(p)
+        
+        return missing_pieces
 
 class TorrentDownloadVersion6(
     DefaultTorrent,
@@ -171,17 +192,40 @@ class TorrentDownloadVersion6(
         # mon_upload_task = asyncio.ensure_future(mon_upload)
         # tasks.append(mon_upload_task)
 
-        download = self.download(
-                missing_pieces,
-                to_bytes=True,
-                progress_func=self.dp._pick_surge_progress
-            )
+        os.makedirs('to_download', exist_ok=True)
+        to_download_path = f'to_download/{self.info_hash}'
+
+        s = PickleTemp()
+        logger.info(f'l: {len(missing_pieces)=}')
+        s.add_pieces(missing_pieces)
+        with open(f'{to_download_path}.msp', 'wb') as p:
+            pickle.dump(s, p, pickle.HIGHEST_PROTOCOL)
+
+        with open(to_download_path, 'wb') as twb:
+            self.bytes_data.seek(0)
+            twb.write(self.bytes_data.read())
+
+        self.bytes_data.seek(0)
+
+        if False:
+            download = self.download(
+                    missing_pieces,
+                    to_bytes=True,
+                    progress_func=self.dp._pick_surge_progress
+                )
+
         # download_task = asyncio.create_task(download)
         # tasks.append(download_task)
 
         upload_task = asyncio.create_task(mon_upload)
         tasks.append(upload_task)
-        await download
+        # await download
+        # while os.path.isfile(f'to_download/{self.info_hash}'):
+        #
+        #     logger.info(f'wait download: {self.info_hash}')
+        #     break
+        #     await asyncio.sleep(60)
+
         # asyncio.run_coroutine_threadsafe(
         #     self.download(
         #         missing_pieces,
@@ -203,6 +247,10 @@ class TorrentDownloadVersion6(
         #         [],
         #         set_status=True
         # )
+
+        logger.info(f'st mon_upload')
+        await mon_upload
+        logger.info(f'end mon_upload')
 
         logger.info(f'end1 {self.info_hash=}')
         # if tasks:
